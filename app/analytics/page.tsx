@@ -14,7 +14,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { AnalyticsResponse, Business, SignalType } from "@/lib/types";
+import type { AnalyticsResponse, Business, Post, Signal, SignalType } from "@/lib/types";
+import { recommendationFor, strengthsFor } from "@/lib/recommendations";
 
 type Pill = "promo" | "new-product" | "viral-post" | "pricing";
 
@@ -37,6 +38,18 @@ export default function AnalyticsPage() {
   const [business, setBusiness] = useState<Business | null>(null);
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<(Signal & { competitorName: string }) | null>(null);
+  const [postCache, setPostCache] = useState<Record<string, Post>>({});
+
+  async function openSignal(s: Signal & { competitorName: string }) {
+    setSelected(s);
+    if (postCache[s.postId]) return;
+    const res = await fetch(`/api/competitors/${s.competitorId}`);
+    if (!res.ok) return;
+    const j = (await res.json()) as { posts: Post[] };
+    const post = j.posts.find((p) => p.id === s.postId);
+    if (post) setPostCache((c) => ({ ...c, [s.postId]: post }));
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +144,11 @@ export default function AnalyticsPage() {
             const pill = pillFor(s.signalType, s.engagementDelta);
             const style = PILL_STYLE[pill];
             return (
-              <div key={s.id} style={cardStyle}>
+              <button
+                key={s.id}
+                onClick={() => openSignal(s)}
+                style={{ ...cardStyle, textAlign: "left", cursor: "pointer", font: "inherit" }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                   <strong style={{ fontSize: 14 }}>{s.competitorName}</strong>
                   <span
@@ -166,11 +183,19 @@ export default function AnalyticsPage() {
                   Engagement {s.engagementDelta >= 0 ? "+" : ""}
                   {Math.round(s.engagementDelta * 100)}% vs baseline
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </section>
+
+      {selected && (
+        <SignalDetail
+          signal={selected}
+          post={postCache[selected.postId] ?? null}
+          onClose={() => setSelected(null)}
+        />
+      )}
 
       <section style={{ marginBottom: 40 }}>
         <h2 style={sectionTitle}>Engagement over the last 12 weeks</h2>
@@ -265,3 +290,136 @@ const cardStyle: React.CSSProperties = {
 };
 
 const COLORS = ["#1F4FBF", "#B5530B", "#0A7A3B", "#A2196F", "#5B21B6"];
+
+function SignalDetail({
+  signal,
+  post,
+  onClose,
+}: {
+  signal: Signal & { competitorName: string };
+  post: Post | null;
+  onClose: () => void;
+}) {
+  const pill = (signal.engagementDelta > 0.75
+    ? "viral-post"
+    : signal.signalType === "price_change"
+      ? "pricing"
+      : signal.signalType === "launch" || signal.signalType === "menu_change"
+        ? "new-product"
+        : "promo") as Pill;
+  const style = PILL_STYLE[pill];
+  const rec = recommendationFor(signal);
+  const strengths = strengthsFor(signal);
+  const postedAt = new Date(signal.postedAt).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        zIndex: 50,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "white",
+          maxWidth: 720,
+          width: "100%",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          borderRadius: 16,
+          padding: 28,
+          boxShadow: "0 24px 60px rgba(0,0,0,0.25)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 13, color: "#666" }}>{signal.competitorName} · {postedAt}</div>
+            <h2 style={{ margin: "4px 0 0", fontSize: 22 }}>{signal.summary}</h2>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{ border: "none", background: "transparent", fontSize: 22, cursor: "pointer", color: "#666" }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <span
+            style={{
+              background: style.bg,
+              color: style.fg,
+              padding: "2px 8px",
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 0.4,
+            }}
+          >
+            {style.label}
+          </span>
+          <span style={{ fontSize: 12, color: "#666" }}>
+            Engagement {signal.engagementDelta >= 0 ? "+" : ""}
+            {Math.round(signal.engagementDelta * 100)}% vs baseline · confidence {Math.round(signal.confidence * 100)}%
+          </span>
+        </div>
+
+        {post && (
+          <div style={{ marginTop: 20, display: "grid", gap: 12, gridTemplateColumns: "120px 1fr" }}>
+            <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.mediaUrl}
+                alt=""
+                style={{ width: 120, height: 120, borderRadius: 8, objectFit: "cover", display: "block" }}
+              />
+            </a>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>{post.caption}</p>
+              <p style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+                {post.likeCount.toLocaleString()} likes · {post.commentCount.toLocaleString()} comments ·{" "}
+                <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#1F4FBF" }}>
+                  view original post →
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        <section style={{ marginTop: 24 }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: 15 }}>What they're doing well</h3>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "#333" }}>{strengths}</p>
+          <p style={{ marginTop: 8, fontSize: 14, lineHeight: 1.55, color: "#333" }}>{rec.doingWell}</p>
+        </section>
+
+        <section style={{ marginTop: 20 }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: 15 }}>How to undercut / counter</h3>
+          <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, lineHeight: 1.55, color: "#333" }}>
+            {rec.undercut.map((line, i) => (
+              <li key={i} style={{ marginBottom: 6 }}>{line}</li>
+            ))}
+          </ul>
+        </section>
+
+        <p style={{ marginTop: 20, fontSize: 11, color: "#999" }}>
+          Recommendations are template-based heuristics for the MVP. A production version would use an LLM grounded on
+          your business context.
+        </p>
+      </div>
+    </div>
+  );
+}

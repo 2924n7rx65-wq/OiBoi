@@ -1,7 +1,7 @@
 [
   {
     "id": "gym-001",
-    "name": "Iron Lab Gym",
+    "name": "Club Vitality",
     "niche": null,
     "businessType": null,
     "location": null,
@@ -9,7 +9,7 @@
   },
   {
     "id": "restaurant-001",
-    "name": "Tavola",
+    "name": "August Restaurant",
     "niche": null,
     "businessType": null,
     "location": null,
@@ -17,7 +17,7 @@
   },
   {
     "id": "cafe-001",
-    "name": "Bella's Coffee",
+    "name": "Kin & Co",
     "niche": null,
     "businessType": null,
     "location": null,
@@ -25,7 +25,7 @@
   },
   {
     "id": "retail-001",
-    "name": "Second Story Threads",
+    "name": "RSPCA Op Shop New Farm",
     "niche": null,
     "businessType": null,
     "location": null,
