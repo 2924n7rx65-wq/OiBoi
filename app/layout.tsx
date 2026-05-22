@@ -1,18 +1,18 @@
 import type { ReactNode } from "react";
-import { Newsreader, Work_Sans } from "next/font/google";
+import { Fraunces, IBM_Plex_Sans } from "next/font/google";
 import { SpiralScrollbar } from "@/components/SpiralScrollbar";
 import "./globals.css";
 
-const newsreader = Newsreader({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  variable: "--font-newsreader",
+  variable: "--font-heading-raw",
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],
   display: "swap",
 });
-const workSans = Work_Sans({
+const plex = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-work-sans",
+  variable: "--font-body-raw",
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
@@ -25,7 +25,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${newsreader.variable} ${workSans.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${plex.variable}`}>
       <body>
         <SpiralScrollbar />
         {children}
