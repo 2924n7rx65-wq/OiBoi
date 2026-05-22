@@ -23,8 +23,6 @@ export default function HeroHome() {
     <>
       <TopNav variant="marketing" />
 
-      <HeroBanner />
-
       <section className="container" style={{ position: "relative", paddingTop: 72, paddingBottom: 80 }}>
         <HeroIconBackdrop />
 
@@ -57,32 +55,6 @@ export default function HeroHome() {
       <HowItWorks />
       <Footer />
     </>
-  );
-}
-
-function HeroBanner() {
-  return (
-    <div
-      style={{
-        background: "var(--green)",
-        color: "var(--paper)",
-        overflow: "hidden",
-        position: "relative",
-        borderBottom: "1px solid var(--green-deep)",
-      }}
-    >
-      <div
-        className="container"
-        style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", gap: 16 }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <IconSparkle width={14} height={14} style={{ color: "#9ABFA6" }} /> Now monitoring 40 Brisbane businesses across 4 verticals
-        </span>
-        <span style={{ fontSize: 12, color: "#B6CDB9" }}>v0.1 · hackathon build</span>
-      </div>
-      {/* Decorative icons in lighter/darker green */}
-      <BannerDecor />
-    </div>
   );
 }
 
@@ -122,45 +94,6 @@ function HeroIconBackdrop() {
             transform: `rotate(${it.rot}deg)`,
             color: it.tone === "soft" ? "#B6CDB9" : "#D7DBC5",
             opacity: 0.55,
-          }}
-        >
-          {it.icon}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function BannerDecor() {
-  // Icons sprinkled in a lighter and darker green over the banner
-  const items = [
-    { left: "6%", icon: <IconDumbbell />, tone: "light" as const, rot: -8 },
-    { left: "18%", icon: <IconFork />, tone: "dark" as const, rot: 4 },
-    { left: "32%", icon: <IconCup />, tone: "light" as const, rot: -2 },
-    { left: "62%", icon: <IconBag />, tone: "dark" as const, rot: 6 },
-    { left: "78%", icon: <IconRadar />, tone: "light" as const, rot: -4 },
-    { left: "92%", icon: <IconBolt />, tone: "dark" as const, rot: 10 },
-  ];
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: "absolute",
-        inset: 0,
-        pointerEvents: "none",
-        overflow: "hidden",
-      }}
-    >
-      {items.map((it, i) => (
-        <span
-          key={i}
-          style={{
-            position: "absolute",
-            left: it.left,
-            top: "50%",
-            transform: `translateY(-50%) rotate(${it.rot}deg)`,
-            color: it.tone === "light" ? "#5C8A6F" : "#1B3D2A",
-            opacity: 0.35,
           }}
         >
           {it.icon}
@@ -353,36 +286,119 @@ function Footer() {
   return (
     <footer
       style={{
-        borderTop: "1px solid var(--rule)",
-        background: "var(--paper)",
-        padding: "32px 0",
+        background: "var(--green)",
+        color: "var(--paper)",
+        position: "relative",
+        overflow: "hidden",
+        padding: "56px 0 32px",
+        marginTop: 24,
       }}
     >
+      {/* Subtle dot pattern in cream */}
+      <svg
+        aria-hidden
+        width="100%"
+        height="100%"
+        style={{ position: "absolute", inset: 0, opacity: 0.08 }}
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <pattern id="footerDots" width="22" height="22" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="#F4F1EA" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#footerDots)" />
+      </svg>
+
       <div
         className="container"
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}
+        style={{
+          position: "relative",
+          display: "grid",
+          gridTemplateColumns: "1.4fr 1fr 1fr 1fr",
+          gap: 32,
+          alignItems: "flex-start",
+        }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <span
               style={{
-                width: 18,
-                height: 18,
-                borderRadius: 6,
-                background: "var(--green)",
-                display: "inline-block",
+                width: 22,
+                height: 22,
+                borderRadius: 7,
+                background: "var(--paper)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
-            />
-            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500 }}>Leapfrog</span>
+            >
+              <span
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 4,
+                  background: "var(--green)",
+                  display: "inline-block",
+                }}
+              />
+            </span>
+            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: 18 }}>
+              Leapfrog
+            </span>
           </span>
-          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-            Stay one hop ahead of the shop next door.
-          </span>
+          <p style={{ marginTop: 12, fontSize: 13, color: "#C7D8CB", maxWidth: 280 }}>
+            Stay one hop ahead of the shop next door. Real-time competitor radar for small local
+            businesses.
+          </p>
         </div>
-        <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-          © {new Date().getFullYear()} Leapfrog · Built for the hackathon
-        </span>
+
+        <FooterCol title="Product" links={["Features", "Pricing", "Integrations", "Changelog"]} />
+        <FooterCol title="Company" links={["About", "Industries", "Customers", "Careers"]} />
+        <FooterCol title="Legal" links={["Privacy", "Terms", "Security", "Contact"]} />
+      </div>
+
+      <div
+        className="container"
+        style={{
+          position: "relative",
+          marginTop: 40,
+          paddingTop: 20,
+          borderTop: "1px solid rgba(244, 241, 234, 0.18)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: 12,
+          color: "#C7D8CB",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
+        <span>© {new Date().getFullYear()} Leapfrog · Built for the hackathon.</span>
+        <span>Brisbane · Made with care.</span>
       </div>
     </footer>
+  );
+}
+
+function FooterCol({ title, links }: { title: string; links: string[] }) {
+  return (
+    <div>
+      <div
+        className="eyebrow"
+        style={{ color: "#9ABFA6", marginBottom: 10 }}
+      >
+        {title}
+      </div>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+        {links.map((l) => (
+          <li key={l}>
+            <a href="#" style={{ color: "var(--paper)", fontSize: 13, opacity: 0.85 }}>
+              {l}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
@@ -124,21 +125,25 @@ export default function AnalyticsPage() {
     return { rows, names: data.engagement.map((c) => c.competitorName) };
   }, [data]);
 
-  const postsChart = useMemo(() => {
-    if (!data) return { rows: [], names: [] as string[] };
-    const byWeek = new Map<string, Record<string, number | string>>();
+  // Total market-wide posting volume per week — one series, more legible than
+  // ten near-identical per-competitor bars.
+  const volumeChart = useMemo(() => {
+    if (!data) return [] as { weekStart: string; count: number }[];
+    const byWeek = new Map<string, number>();
     for (const c of data.postsPerWeek) {
       for (const w of c.weeks) {
-        const row = byWeek.get(w.weekStart) ?? { weekStart: w.weekStart };
-        row[c.competitorName] = w.count;
-        byWeek.set(w.weekStart, row);
+        byWeek.set(w.weekStart, (byWeek.get(w.weekStart) ?? 0) + w.count);
       }
     }
-    const rows = [...byWeek.values()].sort((a, b) =>
-      (a.weekStart as string) < (b.weekStart as string) ? -1 : 1,
-    );
-    return { rows, names: data.postsPerWeek.map((c) => c.competitorName) };
+    return [...byWeek.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([weekStart, count]) => ({ weekStart, count }));
   }, [data]);
+
+  const peakWeek = useMemo(
+    () => volumeChart.reduce((m, r) => (r.count > m.count ? r : m), { weekStart: "", count: 0 }),
+    [volumeChart],
+  );
 
   if (error) {
     return (
@@ -294,22 +299,46 @@ export default function AnalyticsPage() {
 
             <div className="card" style={{ padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                <strong>Posts per week</strong>
-                <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>Top 5 movers</span>
+                <strong>Market posting volume</strong>
+                <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                  Posts across all competitors · peak week highlighted
+                </span>
               </div>
               <div style={{ width: "100%", height: 260 }}>
                 <ResponsiveContainer>
-                  <BarChart data={postsChart.rows} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#EFEDE5" />
+                  <BarChart data={volumeChart} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#EFEDE5" vertical={false} />
                     <XAxis dataKey="weekStart" fontSize={10} stroke="#5A6660" />
                     <YAxis fontSize={10} stroke="#5A6660" />
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                    {focusNames.map((name, i) => (
-                      <Bar key={name} dataKey={name} fill={COLORS[i % COLORS.length]} />
-                    ))}
+                    <Tooltip cursor={{ fill: "rgba(45, 90, 65, 0.06)" }} />
+                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                      {volumeChart.map((row) => (
+                        <Cell
+                          key={row.weekStart}
+                          fill={row.weekStart === peakWeek.weekStart ? "#D95D39" : "#2D5A41"}
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: 10,
+                  fontSize: 12,
+                  color: "var(--ink-soft)",
+                }}
+              >
+                <span>
+                  Peak week:{" "}
+                  <strong style={{ color: "var(--orange)" }}>
+                    {peakWeek.weekStart || "—"}
+                  </strong>{" "}
+                  with {peakWeek.count} posts
+                </span>
+                <span>Avg ≈ {Math.round(volumeChart.reduce((a, r) => a + r.count, 0) / Math.max(1, volumeChart.length))}/wk</span>
               </div>
             </div>
           </div>
@@ -448,156 +477,172 @@ function FeedCard({
 }
 
 function CompetitorRadar({
-  competitors,
-  topMovers,
   initiatives,
 }: {
   competitors: Competitor[];
   topMovers: AnalyticsResponse["topMovers"];
   initiatives: (Signal & { competitorName: string })[];
 }) {
-  // Plot real local competitors as a scatter:
-  //   X = distance from you (km), capped at 5km
-  //   Y = recent engagement vs baseline (the "top movers" delta)
-  //   colour = pill type of their most recent initiative
+  // Bubble chart: 4 columns, one per signal-pill type. Each bubble is a
+  // single initiative — Y = engagement vs baseline, size = importance.
+  // Reads at a glance as "what kind of moves are landing this week".
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const W = 240;
-  const H = 180;
-  const PAD = 26;
-  const MAX_KM = 5;
-  const MAX_DELTA = Math.max(
-    50,
-    ...topMovers.map((m) => Math.abs(m.engagementDeltaPct)),
-  );
+  const COLS: Pill[] = ["promo", "new-product", "viral-post", "pricing"];
+  const W = 280;
+  const H = 220;
+  const PAD_T = 18;
+  const PAD_B = 36;
+  const PAD_L = 30;
+  const PAD_R = 8;
+  const chartH = H - PAD_T - PAD_B;
+  const colW = (W - PAD_L - PAD_R) / COLS.length;
 
-  const moverDelta = new Map(topMovers.map((m) => [m.competitorId, m.engagementDeltaPct]));
-  const lastInitiative = new Map<string, Signal & { competitorName: string }>();
-  for (const s of initiatives) {
-    if (!lastInitiative.has(s.competitorId)) lastInitiative.set(s.competitorId, s);
-  }
+  const positive = initiatives.filter((s) => s.engagementDelta >= 0);
+  const maxDelta = Math.max(0.6, ...positive.map((s) => s.engagementDelta));
+  const tickValues = [0, 0.5, 1].map((t) => Math.round(t * maxDelta * 100));
 
-  const points = competitors.map((c) => {
-    const km = Math.min(MAX_KM, c.distanceKm);
-    const delta = moverDelta.get(c.id) ?? 0;
-    const x = PAD + (km / MAX_KM) * (W - PAD * 2);
-    const y = H - PAD - (Math.max(0, delta) / MAX_DELTA) * (H - PAD * 2);
-    const initiative = lastInitiative.get(c.id);
-    const pill = initiative ? pillFor(initiative.signalType, initiative.engagementDelta) : "promo";
-    return { c, x, y, delta, pill };
+  const bubbles = positive.map((s) => {
+    const pill = pillFor(s.signalType, s.engagementDelta);
+    const colIdx = COLS.indexOf(pill);
+    // deterministic horizontal jitter inside the column
+    const hash = Array.from(s.id).reduce((a, ch) => a + ch.charCodeAt(0), 0);
+    const jitter = ((hash % 1000) / 1000) * (colW - 18) + 9;
+    const cx = PAD_L + colIdx * colW + jitter;
+    const cy = PAD_T + (1 - s.engagementDelta / maxDelta) * chartH;
+    const r = 5 + s.importance * 8;
+    return { s, pill, cx, cy, r };
   });
 
   return (
     <div className="card" style={{ padding: 18 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-        <div>
-          <strong style={{ fontSize: 14 }}>Competitor Radar</strong>
-          <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
-            Local rivals plotted by distance and recent engagement
-          </div>
+      <div style={{ marginBottom: 6 }}>
+        <strong style={{ fontSize: 14 }}>What's working in your market</strong>
+        <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
+          Each bubble is a competitor move · size = importance · height = engagement
         </div>
-        <IconRadar width={16} height={16} style={{ color: "var(--ink-soft)" }} />
       </div>
 
-      <svg width="100%" viewBox={`0 0 ${W} ${H + 30}`} role="img" aria-label="Competitor radar">
-        {/* Grid */}
-        <rect x={PAD} y={PAD * 0.4} width={W - PAD * 2} height={H - PAD * 1.4} fill="var(--cream)" rx={8} />
-        {/* Y gridlines */}
-        {[0, 0.5, 1].map((t) => (
-          <line
-            key={`y${t}`}
-            x1={PAD}
-            x2={W - PAD}
-            y1={H - PAD - t * (H - PAD * 2)}
-            y2={H - PAD - t * (H - PAD * 2)}
-            stroke="var(--rule)"
-            strokeWidth={0.6}
-          />
-        ))}
-        {/* X gridlines */}
-        {[0.25, 0.5, 0.75].map((t) => (
-          <line
-            key={`x${t}`}
-            y1={PAD * 0.4}
-            y2={H - PAD}
-            x1={PAD + t * (W - PAD * 2)}
-            x2={PAD + t * (W - PAD * 2)}
-            stroke="var(--rule)"
-            strokeWidth={0.6}
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="What's working bubble chart">
+        {/* Column backgrounds */}
+        {COLS.map((p, i) => (
+          <rect
+            key={p}
+            x={PAD_L + i * colW}
+            y={PAD_T - 6}
+            width={colW}
+            height={chartH + 6}
+            fill={i % 2 === 0 ? "var(--cream)" : "transparent"}
+            opacity={0.6}
           />
         ))}
 
-        {/* Axis labels */}
-        <text x={PAD} y={H - 4} fontSize={9} fill="var(--ink-soft)">0 km</text>
-        <text x={W - PAD - 24} y={H - 4} fontSize={9} fill="var(--ink-soft)">{MAX_KM}+ km</text>
-        <text x={4} y={PAD * 0.4 + 8} fontSize={9} fill="var(--ink-soft)">High engagement</text>
-        <text x={4} y={H - PAD - 2} fontSize={9} fill="var(--ink-soft)">Low</text>
-
-        {/* "You are here" marker — bottom-left, the business itself */}
-        <circle cx={PAD} cy={H - PAD} r={4} fill="var(--ink)" />
-        <text x={PAD + 7} y={H - PAD - 6} fontSize={9} fill="var(--ink)" fontWeight={600}>
-          You
-        </text>
-
-        {/* Points */}
-        {points.map((p) => {
-          const color = PILL_STYLE[p.pill].fg;
-          const isHot = p.delta > 50;
+        {/* Y axis ticks */}
+        {[0, 0.5, 1].map((t, i) => {
+          const y = PAD_T + (1 - t) * chartH;
           return (
-            <g
-              key={p.c.id}
-              onMouseEnter={() => setHovered(p.c.id)}
-              onMouseLeave={() => setHovered(null)}
-              style={{ cursor: "pointer" }}
-            >
-              {isHot && (
-                <circle cx={p.x} cy={p.y} r={10} fill={color} opacity={0.12} />
-              )}
-              <circle cx={p.x} cy={p.y} r={isHot ? 5 : 4} fill={color} />
-              {hovered === p.c.id && (
-                <g>
-                  <rect
-                    x={p.x + 8}
-                    y={p.y - 22}
-                    width={p.c.name.length * 5.5 + 14}
-                    height={20}
-                    rx={4}
-                    fill="var(--ink)"
-                  />
-                  <text x={p.x + 15} y={p.y - 8} fontSize={10} fill="var(--paper)">
-                    {p.c.name} · +{p.delta}%
-                  </text>
-                </g>
-              )}
+            <g key={t}>
+              <line x1={PAD_L} x2={W - PAD_R} y1={y} y2={y} stroke="var(--rule)" strokeWidth={0.5} />
+              <text x={PAD_L - 4} y={y + 3} fontSize={9} fill="var(--ink-soft)" textAnchor="end">
+                +{tickValues[i]}%
+              </text>
             </g>
           );
         })}
 
-        {/* X axis label */}
-        <text x={W / 2} y={H + 20} fontSize={10} fill="var(--ink-soft)" textAnchor="middle">
-          Distance from your business →
-        </text>
+        {/* Bubbles — sorted so smaller draw on top */}
+        {[...bubbles]
+          .sort((a, b) => b.r - a.r)
+          .map((b) => {
+            const isHot = b.s.engagementDelta > 1;
+            const color = PILL_STYLE[b.pill].fg;
+            return (
+              <g
+                key={b.s.id}
+                onMouseEnter={() => setHovered(b.s.id)}
+                onMouseLeave={() => setHovered(null)}
+                style={{ cursor: "pointer" }}
+              >
+                {isHot && <circle cx={b.cx} cy={b.cy} r={b.r + 6} fill={color} opacity={0.1} />}
+                <circle
+                  cx={b.cx}
+                  cy={b.cy}
+                  r={b.r}
+                  fill={color}
+                  fillOpacity={hovered === b.s.id ? 1 : 0.7}
+                  stroke={color}
+                  strokeWidth={hovered === b.s.id ? 2 : 0}
+                />
+              </g>
+            );
+          })}
+
+        {/* X axis column labels */}
+        {COLS.map((p, i) => {
+          const style = PILL_STYLE[p];
+          return (
+            <g key={`label-${p}`}>
+              <rect
+                x={PAD_L + i * colW + colW / 2 - 26}
+                y={H - PAD_B + 8}
+                width={52}
+                height={18}
+                rx={9}
+                fill={style.bg}
+              />
+              <text
+                x={PAD_L + i * colW + colW / 2}
+                y={H - PAD_B + 20}
+                fontSize={9.5}
+                fontWeight={600}
+                fill={style.fg}
+                textAnchor="middle"
+              >
+                {style.label}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Hover tooltip */}
+        {hovered &&
+          (() => {
+            const b = bubbles.find((x) => x.s.id === hovered);
+            if (!b) return null;
+            const label = `${b.s.competitorName} · +${Math.round(b.s.engagementDelta * 100)}%`;
+            const w = label.length * 5.4 + 14;
+            const tx = Math.min(W - w - 4, Math.max(4, b.cx - w / 2));
+            const ty = Math.max(2, b.cy - b.r - 22);
+            return (
+              <g pointerEvents="none">
+                <rect x={tx} y={ty} width={w} height={18} rx={4} fill="var(--ink)" />
+                <text x={tx + 7} y={ty + 12} fontSize={9.5} fill="var(--paper)">
+                  {label}
+                </text>
+              </g>
+            );
+          })()}
       </svg>
 
-      {/* Legend */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
-        {(["promo", "new-product", "viral-post", "pricing"] as const).map((p) => (
-          <span
-            key={p}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--ink-soft)" }}
-          >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 999,
-                background: PILL_STYLE[p].fg,
-                display: "inline-block",
-              }}
-            />
-            {PILL_STYLE[p].label}
-          </span>
-        ))}
+      {/* Per-column summary */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 6,
+          marginTop: 6,
+          fontSize: 10,
+          color: "var(--ink-soft)",
+        }}
+      >
+        {COLS.map((p) => {
+          const count = bubbles.filter((b) => b.pill === p).length;
+          return (
+            <span key={p} style={{ textAlign: "center" }}>
+              {count} {count === 1 ? "move" : "moves"}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

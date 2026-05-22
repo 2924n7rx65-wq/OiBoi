@@ -20,7 +20,9 @@ export function TopNav({ variant = "marketing" }: { variant?: "marketing" | "app
 
   async function logout() {
     await fetch("/api/session", { method: "DELETE" });
+    setBusiness(null);
     router.push("/");
+    router.refresh();
   }
 
   return (
