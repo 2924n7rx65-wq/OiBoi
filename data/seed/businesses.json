@@ -1,0 +1,34 @@
+[
+  {
+    "id": "gym-001",
+    "name": "Iron Lab Gym",
+    "niche": null,
+    "businessType": null,
+    "location": null,
+    "onboarded": false
+  },
+  {
+    "id": "restaurant-001",
+    "name": "Tavola",
+    "niche": null,
+    "businessType": null,
+    "location": null,
+    "onboarded": false
+  },
+  {
+    "id": "cafe-001",
+    "name": "Bella's Coffee",
+    "niche": null,
+    "businessType": null,
+    "location": null,
+    "onboarded": false
+  },
+  {
+    "id": "retail-001",
+    "name": "Second Story Threads",
+    "niche": null,
+    "businessType": null,
+    "location": null,
+    "onboarded": false
+  }
+]
