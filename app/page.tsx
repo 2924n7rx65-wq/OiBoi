@@ -4,11 +4,18 @@ import {
   IconArrowRight,
   IconBag,
   IconBolt,
+  IconCalendar,
+  IconChart,
+  IconCoin,
   IconCup,
   IconDumbbell,
   IconFork,
+  IconHash,
+  IconHeart,
+  IconMegaphone,
   IconRadar,
   IconSparkle,
+  IconTag,
 } from "@/components/Icons";
 
 export default function HeroHome() {
@@ -18,12 +25,11 @@ export default function HeroHome() {
 
       <HeroBanner />
 
-      <section className="container" style={{ paddingTop: 56, paddingBottom: 80 }}>
-        <div style={{ textAlign: "center", maxWidth: 720, margin: "0 auto" }}>
-          <span className="pill pill-green" style={{ gap: 8 }}>
-            <IconBolt width={12} height={12} /> Real-time competitor alerts
-          </span>
-          <h1 style={{ marginTop: 18 }}>
+      <section className="container" style={{ position: "relative", paddingTop: 72, paddingBottom: 80 }}>
+        <HeroIconBackdrop />
+
+        <div style={{ position: "relative", textAlign: "center", maxWidth: 760, margin: "0 auto" }}>
+          <h1 style={{ marginTop: 0 }}>
             Know what your <span className="italic-accent">competitors</span> are doing before your
             customers do.
           </h1>
@@ -42,7 +48,7 @@ export default function HeroHome() {
           </div>
         </div>
 
-        <div id="preview" style={{ marginTop: 56 }}>
+        <div id="preview" style={{ position: "relative", marginTop: 56 }}>
           <PreviewCard />
         </div>
       </section>
@@ -76,6 +82,51 @@ function HeroBanner() {
       </div>
       {/* Decorative icons in lighter/darker green */}
       <BannerDecor />
+    </div>
+  );
+}
+
+function HeroIconBackdrop() {
+  // Lighter-tone icons scattered behind the headline — analytics, events,
+  // tags, hashtags, hearts — to suggest "everything competitors do, watched"
+  // without competing with the headline.
+  const items = [
+    { left: "4%",  top: 8,   icon: <IconChart width={42} height={42} />,     rot: -6,  tone: "soft" },
+    { left: "14%", top: 120, icon: <IconCalendar width={36} height={36} />,  rot: 5,   tone: "softer" },
+    { left: "8%",  top: 230, icon: <IconHeart width={34} height={34} />,     rot: -10, tone: "soft" },
+    { left: "22%", top: 24,  icon: <IconHash width={30} height={30} />,      rot: 8,   tone: "softer" },
+    { left: "44%", top: -6,  icon: <IconSparkle width={30} height={30} />,   rot: 0,   tone: "soft" },
+    { left: "70%", top: 14,  icon: <IconMegaphone width={38} height={38} />, rot: -8,  tone: "softer" },
+    { left: "82%", top: 100, icon: <IconTag width={36} height={36} />,       rot: 6,   tone: "soft" },
+    { left: "90%", top: 230, icon: <IconCoin width={34} height={34} />,      rot: -4,  tone: "softer" },
+    { left: "78%", top: 250, icon: <IconBolt width={28} height={28} />,      rot: 12,  tone: "soft" },
+    { left: "30%", top: 220, icon: <IconRadar width={36} height={36} />,     rot: -3,  tone: "softer" },
+  ];
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        overflow: "hidden",
+      }}
+    >
+      {items.map((it, i) => (
+        <span
+          key={i}
+          style={{
+            position: "absolute",
+            left: it.left,
+            top: it.top,
+            transform: `rotate(${it.rot}deg)`,
+            color: it.tone === "soft" ? "#B6CDB9" : "#D7DBC5",
+            opacity: 0.55,
+          }}
+        >
+          {it.icon}
+        </span>
+      ))}
     </div>
   );
 }

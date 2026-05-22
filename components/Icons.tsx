@@ -150,3 +150,59 @@ export function IconClose(p: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+export function IconChart(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <path d="M3 21h18" />
+      <rect x="6" y="13" width="3" height="6" rx="1" />
+      <rect x="11" y="8" width="3" height="11" rx="1" />
+      <rect x="16" y="4" width="3" height="15" rx="1" />
+    </svg>
+  );
+}
+export function IconCalendar(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 9h18M8 3v4M16 3v4" />
+    </svg>
+  );
+}
+export function IconMegaphone(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <path d="M3 11v2a2 2 0 0 0 2 2h1l5 4V5L6 9H5a2 2 0 0 0-2 2Z" />
+      <path d="M16 8a5 5 0 0 1 0 8" />
+    </svg>
+  );
+}
+export function IconTag(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <path d="M3 12V4h8l10 10-8 8L3 12Z" />
+      <circle cx="8" cy="9" r="1.6" />
+    </svg>
+  );
+}
+export function IconHeart(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <path d="M12 20s-7-4.5-9-9a4.5 4.5 0 0 1 9-2 4.5 4.5 0 0 1 9 2c-2 4.5-9 9-9 9Z" />
+    </svg>
+  );
+}
+export function IconHash(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16" />
+    </svg>
+  );
+}
+export function IconCoin(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v10M9 10c0-1.1 1.3-2 3-2s3 .9 3 2c0 2.5-6 1-6 3.5 0 1.1 1.3 2 3 2s3-.9 3-2" />
+    </svg>
+  );
+}

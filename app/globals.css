@@ -20,6 +20,15 @@
 html, body { margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; }
 
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
 body {
   background: var(--cream);
   color: var(--ink);
@@ -28,13 +37,11 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   /* Right padding so content doesn't hide under the spiral indicator */
-  padding-right: 28px;
+  padding-right: 36px;
 }
-
-/* Hide native scrollbar — replaced by the spiral indicator */
-body::-webkit-scrollbar { width: 0; height: 0; }
-body { scrollbar-width: none; -ms-overflow-style: none; }
 
 h1, h2, h3, h4 {
   font-family: var(--font-heading);

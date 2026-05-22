@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { AnalyticsResponse, Business, Post, Signal, SignalType } from "@/lib/types";
+import type { AnalyticsResponse, Business, Competitor, Post, Signal, SignalType } from "@/lib/types";
 import { recommendationFor, strengthsFor } from "@/lib/recommendations";
 import { TopNav } from "@/components/TopNav";
 import {
@@ -57,6 +57,7 @@ export default function AnalyticsPage() {
   const [selected, setSelected] = useState<(Signal & { competitorName: string }) | null>(null);
   const [postCache, setPostCache] = useState<Record<string, Post>>({});
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
+  const [competitors, setCompetitors] = useState<Competitor[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,13 +69,23 @@ export default function AnalyticsPage() {
         return;
       }
       setBusiness(sess.business);
-      const res = await fetch(`/api/analytics?businessId=${sess.businessId}`);
-      if (!res.ok) {
-        setError(`Analytics fetch failed (${res.status})`);
+      const [analyticsRes, competitorsRes] = await Promise.all([
+        fetch(`/api/analytics?businessId=${sess.businessId}`),
+        fetch(`/api/competitors?businessId=${sess.businessId}`),
+      ]);
+      if (!analyticsRes.ok) {
+        setError(`Analytics fetch failed (${analyticsRes.status})`);
         return;
       }
-      const j = (await res.json()) as AnalyticsResponse;
-      if (!cancelled) setData(j);
+      const j = (await analyticsRes.json()) as AnalyticsResponse;
+      const competitorsJson = (await competitorsRes.json()) as {
+        local: Competitor[];
+        inspiration: Competitor[];
+      };
+      if (!cancelled) {
+        setData(j);
+        setCompetitors([...competitorsJson.local, ...competitorsJson.inspiration]);
+      }
     })();
     return () => {
       cancelled = true;
@@ -173,18 +184,6 @@ export default function AnalyticsPage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <span className="pill pill-green" style={{ gap: 6 }}>
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 999,
-                  background: "var(--green)",
-                  boxShadow: "0 0 0 4px rgba(45, 90, 65, 0.18)",
-                }}
-              />
-              Live monitoring
-            </span>
             <button className="btn btn-primary" onClick={() => alert("Demo: this would email a fresh PDF digest")}>
               New report
             </button>
@@ -243,7 +242,11 @@ export default function AnalyticsPage() {
           </section>
 
           <aside style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <CompetitorRadar topMovers={data.topMovers} />
+            <CompetitorRadar
+              competitors={competitors.filter((c) => c.tier === "local")}
+              topMovers={data.topMovers}
+              initiatives={data.initiatives}
+            />
             <WeeklySummary
               totalSignals={totalSignals}
               viralCount={viralCount}
@@ -445,46 +448,156 @@ function FeedCard({
 }
 
 function CompetitorRadar({
+  competitors,
   topMovers,
+  initiatives,
 }: {
+  competitors: Competitor[];
   topMovers: AnalyticsResponse["topMovers"];
+  initiatives: (Signal & { competitorName: string })[];
 }) {
-  // Map each mover to a deterministic point inside the radar based on delta magnitude.
-  const points = topMovers.slice(0, 8).map((m, i) => {
-    const angle = (i / 8) * Math.PI * 2;
-    const r = Math.min(40, 6 + Math.abs(m.engagementDeltaPct) * 0.3);
-    return {
-      cx: 60 + Math.cos(angle) * r,
-      cy: 60 + Math.sin(angle) * r,
-      hot: m.engagementDeltaPct > 100,
-    };
+  // Plot real local competitors as a scatter:
+  //   X = distance from you (km), capped at 5km
+  //   Y = recent engagement vs baseline (the "top movers" delta)
+  //   colour = pill type of their most recent initiative
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  const W = 240;
+  const H = 180;
+  const PAD = 26;
+  const MAX_KM = 5;
+  const MAX_DELTA = Math.max(
+    50,
+    ...topMovers.map((m) => Math.abs(m.engagementDeltaPct)),
+  );
+
+  const moverDelta = new Map(topMovers.map((m) => [m.competitorId, m.engagementDeltaPct]));
+  const lastInitiative = new Map<string, Signal & { competitorName: string }>();
+  for (const s of initiatives) {
+    if (!lastInitiative.has(s.competitorId)) lastInitiative.set(s.competitorId, s);
+  }
+
+  const points = competitors.map((c) => {
+    const km = Math.min(MAX_KM, c.distanceKm);
+    const delta = moverDelta.get(c.id) ?? 0;
+    const x = PAD + (km / MAX_KM) * (W - PAD * 2);
+    const y = H - PAD - (Math.max(0, delta) / MAX_DELTA) * (H - PAD * 2);
+    const initiative = lastInitiative.get(c.id);
+    const pill = initiative ? pillFor(initiative.signalType, initiative.engagementDelta) : "promo";
+    return { c, x, y, delta, pill };
   });
+
   return (
     <div className="card" style={{ padding: 18 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <strong style={{ fontSize: 14 }}>Competitor Radar</strong>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+        <div>
+          <strong style={{ fontSize: 14 }}>Competitor Radar</strong>
+          <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
+            Local rivals plotted by distance and recent engagement
+          </div>
+        </div>
         <IconRadar width={16} height={16} style={{ color: "var(--ink-soft)" }} />
       </div>
-      <div style={{ display: "flex", justifyContent: "center", padding: "10px 0" }}>
-        <svg width={140} height={140} viewBox="0 0 120 120" aria-hidden>
-          <rect x="10" y="10" width="100" height="100" rx="14" fill="var(--cream)" />
-          <rect x="25" y="25" width="70" height="70" rx="10" fill="none" stroke="var(--rule)" />
-          <rect x="40" y="40" width="40" height="40" rx="6" fill="none" stroke="var(--rule)" />
-          <circle cx="60" cy="60" r="2.5" fill="var(--green)" />
-          {points.map((p, i) => (
-            <circle
-              key={i}
-              cx={p.cx}
-              cy={p.cy}
-              r={p.hot ? 4 : 3}
-              fill={p.hot ? "var(--orange)" : "var(--green)"}
+
+      <svg width="100%" viewBox={`0 0 ${W} ${H + 30}`} role="img" aria-label="Competitor radar">
+        {/* Grid */}
+        <rect x={PAD} y={PAD * 0.4} width={W - PAD * 2} height={H - PAD * 1.4} fill="var(--cream)" rx={8} />
+        {/* Y gridlines */}
+        {[0, 0.5, 1].map((t) => (
+          <line
+            key={`y${t}`}
+            x1={PAD}
+            x2={W - PAD}
+            y1={H - PAD - t * (H - PAD * 2)}
+            y2={H - PAD - t * (H - PAD * 2)}
+            stroke="var(--rule)"
+            strokeWidth={0.6}
+          />
+        ))}
+        {/* X gridlines */}
+        {[0.25, 0.5, 0.75].map((t) => (
+          <line
+            key={`x${t}`}
+            y1={PAD * 0.4}
+            y2={H - PAD}
+            x1={PAD + t * (W - PAD * 2)}
+            x2={PAD + t * (W - PAD * 2)}
+            stroke="var(--rule)"
+            strokeWidth={0.6}
+          />
+        ))}
+
+        {/* Axis labels */}
+        <text x={PAD} y={H - 4} fontSize={9} fill="var(--ink-soft)">0 km</text>
+        <text x={W - PAD - 24} y={H - 4} fontSize={9} fill="var(--ink-soft)">{MAX_KM}+ km</text>
+        <text x={4} y={PAD * 0.4 + 8} fontSize={9} fill="var(--ink-soft)">High engagement</text>
+        <text x={4} y={H - PAD - 2} fontSize={9} fill="var(--ink-soft)">Low</text>
+
+        {/* "You are here" marker — bottom-left, the business itself */}
+        <circle cx={PAD} cy={H - PAD} r={4} fill="var(--ink)" />
+        <text x={PAD + 7} y={H - PAD - 6} fontSize={9} fill="var(--ink)" fontWeight={600}>
+          You
+        </text>
+
+        {/* Points */}
+        {points.map((p) => {
+          const color = PILL_STYLE[p.pill].fg;
+          const isHot = p.delta > 50;
+          return (
+            <g
+              key={p.c.id}
+              onMouseEnter={() => setHovered(p.c.id)}
+              onMouseLeave={() => setHovered(null)}
+              style={{ cursor: "pointer" }}
+            >
+              {isHot && (
+                <circle cx={p.x} cy={p.y} r={10} fill={color} opacity={0.12} />
+              )}
+              <circle cx={p.x} cy={p.y} r={isHot ? 5 : 4} fill={color} />
+              {hovered === p.c.id && (
+                <g>
+                  <rect
+                    x={p.x + 8}
+                    y={p.y - 22}
+                    width={p.c.name.length * 5.5 + 14}
+                    height={20}
+                    rx={4}
+                    fill="var(--ink)"
+                  />
+                  <text x={p.x + 15} y={p.y - 8} fontSize={10} fill="var(--paper)">
+                    {p.c.name} · +{p.delta}%
+                  </text>
+                </g>
+              )}
+            </g>
+          );
+        })}
+
+        {/* X axis label */}
+        <text x={W / 2} y={H + 20} fontSize={10} fill="var(--ink-soft)" textAnchor="middle">
+          Distance from your business →
+        </text>
+      </svg>
+
+      {/* Legend */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+        {(["promo", "new-product", "viral-post", "pricing"] as const).map((p) => (
+          <span
+            key={p}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--ink-soft)" }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 999,
+                background: PILL_STYLE[p].fg,
+                display: "inline-block",
+              }}
             />
-          ))}
-        </svg>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--ink-soft)" }}>
-        <span>High impact</span>
-        <span>Distance</span>
+            {PILL_STYLE[p].label}
+          </span>
+        ))}
       </div>
     </div>
   );
