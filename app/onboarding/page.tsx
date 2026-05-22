@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Business, Niche } from "@/lib/types";
+import { TopNav } from "@/components/TopNav";
+import { IconArrowRight } from "@/components/Icons";
 
 const NICHES: { value: Niche; label: string }[] = [
   { value: "gym", label: "Gym" },
@@ -11,9 +13,21 @@ const NICHES: { value: Niche; label: string }[] = [
   { value: "retail", label: "Retail / Op-shop" },
 ];
 
+const BRISBANE_SUBURBS = [
+  "West End",
+  "Fortitude Valley",
+  "New Farm",
+  "Paddington",
+  "Teneriffe",
+  "South Brisbane",
+  "Newstead",
+  "Woolloongabba",
+];
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState("");
   const [niche, setNiche] = useState<Niche>("gym");
   const [businessType, setBusinessType] = useState("");
   const [city, setCity] = useState("Brisbane");
@@ -32,11 +46,14 @@ export default function OnboardingPage() {
         return;
       }
       setBusinessId(j.businessId);
-      if (j.business?.niche) setNiche(j.business.niche);
-      if (j.business?.businessType) setBusinessType(j.business.businessType);
-      if (j.business?.location) {
-        setCity(j.business.location.city);
-        setSuburb(j.business.location.suburb);
+      if (j.business) {
+        setBusinessName(j.business.name);
+        if (j.business.niche) setNiche(j.business.niche);
+        if (j.business.businessType) setBusinessType(j.business.businessType);
+        if (j.business.location) {
+          setCity(j.business.location.city);
+          setSuburb(j.business.location.suburb);
+        }
       }
     })();
     return () => {
@@ -52,11 +69,7 @@ export default function OnboardingPage() {
     const res = await fetch(`/api/businesses/${businessId}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        niche,
-        businessType,
-        location: { city, suburb },
-      }),
+      body: JSON.stringify({ niche, businessType, location: { city, suburb } }),
     });
     if (!res.ok) {
       setError(`Save failed (${res.status})`);
@@ -66,97 +79,115 @@ export default function OnboardingPage() {
     router.push("/analytics");
   }
 
-  if (!businessId) {
-    return (
-      <main style={{ padding: 32 }}>
-        <p>Loading…</p>
-      </main>
-    );
-  }
-
   return (
-    <main style={{ padding: 32, maxWidth: 540, fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ marginBottom: 4 }}>Onboarding</h1>
-      <p style={{ color: "#666", marginTop: 0 }}>
-        Tell us about your business so we can match you against the right competitors.
-      </p>
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 16, marginTop: 24 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontWeight: 600 }}>Niche</span>
-          <select
-            value={niche}
-            onChange={(e) => setNiche(e.target.value as Niche)}
-            style={inputStyle}
-          >
-            {NICHES.map((n) => (
-              <option key={n.value} value={n.value}>
-                {n.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontWeight: 600 }}>Business type</span>
-          <input
-            type="text"
-            placeholder="e.g. strength gym, brunch spot, vintage clothes"
-            value={businessType}
-            onChange={(e) => setBusinessType(e.target.value)}
-            style={inputStyle}
-            required
-          />
-        </label>
-
-        <div style={{ display: "grid", gap: 6, gridTemplateColumns: "1fr 1fr" }}>
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontWeight: 600 }}>City</span>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              style={inputStyle}
-              required
-            />
-          </label>
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontWeight: 600 }}>Suburb</span>
-            <input
-              type="text"
-              placeholder="e.g. Fortitude Valley"
-              value={suburb}
-              onChange={(e) => setSuburb(e.target.value)}
-              style={inputStyle}
-              required
-            />
-          </label>
+    <>
+      <TopNav variant="marketing" />
+      <main className="container" style={{ padding: "56px 28px 80px", maxWidth: 720 }}>
+        <div style={{ textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
+          <span className="pill pill-cream">Step 1 of 1 · 60 seconds</span>
+          <h1 style={{ marginTop: 18, fontSize: 44 }}>
+            Tell us about your <span className="italic-accent">business</span>.
+          </h1>
+          <p style={{ color: "var(--ink-soft)", marginTop: 12 }}>
+            We'll match you against six local rivals and four inspiration accounts further afield.
+            {businessName && (
+              <>
+                {" "}You're signed in as <strong style={{ color: "var(--ink)" }}>{businessName}</strong>.
+              </>
+            )}
+          </p>
         </div>
 
-        {error && <p style={{ color: "#c00", margin: 0 }}>{error}</p>}
+        <form
+          onSubmit={onSubmit}
+          className="card"
+          style={{ marginTop: 32, padding: 28, display: "grid", gap: 18 }}
+        >
+          <Field label="Niche">
+            <select className="input" value={niche} onChange={(e) => setNiche(e.target.value as Niche)}>
+              {NICHES.map((n) => (
+                <option key={n.value} value={n.value}>
+                  {n.label}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <button type="submit" disabled={submitting} style={buttonStyle}>
-          {submitting ? "Saving…" : "Continue to analytics"}
-        </button>
-      </form>
-    </main>
+          <Field label="Business type" hint="A short description — strength gym, brunch spot, vintage clothes.">
+            <input
+              className="input"
+              type="text"
+              value={businessType}
+              onChange={(e) => setBusinessType(e.target.value)}
+              placeholder="e.g. specialty roaster, strength gym"
+              required
+            />
+          </Field>
+
+          <div className="grid-2">
+            <Field label="City">
+              <input
+                className="input"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                required
+              />
+            </Field>
+            <Field label="Suburb">
+              <select
+                className="input"
+                value={suburb}
+                onChange={(e) => setSuburb(e.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Pick a suburb
+                </option>
+                {BRISBANE_SUBURBS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          {error && (
+            <p style={{ color: "var(--orange)", margin: 0, fontSize: 14 }}>{error}</p>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+            <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+              We never share your details — public profile data only.
+            </span>
+            <button type="submit" disabled={submitting} className="btn btn-primary">
+              {submitting ? "Saving…" : "Continue to dashboard"}
+              {!submitting && <IconArrowRight width={14} height={14} />}
+            </button>
+          </div>
+        </form>
+      </main>
+    </>
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  border: "1px solid #ddd",
-  borderRadius: 8,
-  fontSize: 14,
-  fontFamily: "inherit",
-};
-
-const buttonStyle: React.CSSProperties = {
-  marginTop: 8,
-  padding: "12px 16px",
-  background: "#111",
-  color: "white",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  cursor: "pointer",
-};
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label style={{ display: "grid", gap: 6 }}>
+      <span className="eyebrow" style={{ color: "var(--ink-soft)" }}>
+        {label}
+      </span>
+      {children}
+      {hint && <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{hint}</span>}
+    </label>
+  );
+}
