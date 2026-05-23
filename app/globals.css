@@ -118,14 +118,21 @@ button { font: inherit; cursor: pointer; }
   background: var(--green);
   color: var(--paper);
 }
-.btn-primary:hover { background: var(--green-deep); }
+.btn-primary:hover {
+  background: #3A7A55;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45,90,65,0.3);
+}
 
 .btn-secondary {
   background: var(--paper);
   color: var(--ink);
   border-color: var(--rule);
 }
-.btn-secondary:hover { border-color: var(--ink-soft); }
+.btn-secondary:hover {
+  background: rgba(45,90,65,0.06);
+  border-color: rgba(45,90,65,0.4);
+}
 
 .btn-outline {
   background: transparent;
@@ -182,3 +189,58 @@ button { font: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 6px; }
 
 ::selection { background: var(--green-soft); color: var(--green-deep); }
+
+@keyframes breathe {
+  from { opacity: 0.12; }
+  to { opacity: 0.28; }
+}
+
+@keyframes pulse {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.4); opacity: 0.3; }
+}
+
+@keyframes ambientDrift {
+  0%   { transform: translateX(-50%) translate(0, 0) scale(1); }
+  33%  { transform: translateX(-50%) translate(30px, -20px) scale(1.05); }
+  66%  { transform: translateX(-50%) translate(-20px, 15px) scale(0.97); }
+  100% { transform: translateX(-50%) translate(0, 0) scale(1); }
+}
+
+@keyframes slideInFeed {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Dashboard scroll section — 3-col with hidden annotation cols on small screens */
+.dashboard-scroll-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr 160px;
+  align-items: start;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+.annotation-col { display: block; }
+@media (max-width: 960px) {
+  .dashboard-scroll-grid { grid-template-columns: 1fr; }
+  .annotation-col { display: none; }
+}
+
+.glass-card {
+  background: rgba(252, 252, 251, 0.68) !important;
+  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 8px 32px rgba(45,90,65,0.07);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.glass-card:hover {
+  background: rgba(252, 252, 251, 0.9) !important;
+  border-color: rgba(45,90,65,0.2) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 12px 40px rgba(45,90,65,0.12) !important;
+}
