@@ -1,46 +1,81 @@
-# ScoutFeed MVP
+# Leapfrog
 
-Next.js 15 + TypeScript. Backend serves fabricated competitor data so the frontend team can build `/home`, `/onboarding`, `/competitors`, `/analytics` without waiting on the real scraper.
+> Real-time competitor radar for small local businesses. Watch what the shops on your block are doing — promos, pricing moves, viral posts — surfaced the morning they go live with plain-English suggestions on how to stay one step ahead.
 
-## Run
+A Next.js 15 + TypeScript app with fabricated demo data so the full flow (home → onboarding → analytics) works end-to-end without any external services.
+
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Server runs on `http://localhost:3000`.
+Open `http://localhost:3000`.
+
+For a production build:
+
+```bash
+npm run build
+npm run start
+```
+
+## Tech
+
+- **Next.js 15** (App Router) + TypeScript
+- **React 18**
+- **Tailwind-less** — design tokens via `app/globals.css`
+- **Spectral** (headings) + **Manrope** (body) loaded via `next/font`
+- **react-leaflet 4** + Leaflet for the competitor map (with CARTO light tiles)
+- **recharts** for engagement & posting-volume charts
+- **framer-motion** for the homepage scroll animation
+
+No env vars required, no external APIs. All data is seeded JSON + a deterministic generator (`lib/seed-generator.ts`).
+
+## Routes
+
+| Route | What it does |
+|---|---|
+| `/` | Marketing hero with scroll-pinned dashboard preview |
+| `/home` | Pick one of four test businesses to "log in" as (gym, restaurant, cafe, retail) |
+| `/onboarding` | Two-step form: business details → map + competitor selection |
+| `/analytics` | Intelligence Hub — feed, charts, market map, recommended actions |
+| `/competitors` | Local rivals + inspiration accounts |
 
 ## API
 
-All routes are unauthenticated. Session is a cookie (`sf_business`) that holds the currently-logged-in test business id.
+All routes are unauthenticated. Session is a cookie (`sf_business`) holding the current test business id.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/businesses` | List the 4 seeded test businesses (gym, restaurant, cafe, retail). |
-| GET | `/api/businesses/:id` | Single business. |
-| PATCH | `/api/businesses/:id` | Onboarding writes `{ niche, businessType, location, name }`. Sets `onboarded: true` once niche+location are set. |
-| GET | `/api/session` | `{ businessId, business }` for current cookie. |
-| POST | `/api/session` | Body: `{ businessId }`. Sets the session cookie. |
-| DELETE | `/api/session` | Clears the cookie. |
-| GET | `/api/competitors?businessId=` | `{ local: [...], inspiration: [...] }`. Each item has `signalCount`, `lastSignalAt`. |
-| GET | `/api/competitors/:id` | `{ competitor, posts: [{ ..., signal }] }`. |
-| GET | `/api/analytics?businessId=` | `{ initiatives, engagement, postsPerWeek, topMovers }`. **Initiatives** is the headline list — promos/discounts/launches/referrals competitors are running right now (this is the "undercut" feed). |
+| GET | `/api/businesses` | List the 4 seeded test businesses |
+| GET / PATCH | `/api/businesses/:id` | Read or update a business (onboarding PATCHes here) |
+| GET / POST / DELETE | `/api/session` | Cookie-based "log in" / "log out" |
+| GET | `/api/competitors?businessId=` | `{ local, inspiration }` lists |
+| GET | `/api/competitors/:id` | Competitor detail with posts & signals |
+| GET | `/api/analytics?businessId=` | Initiatives feed, weekly engagement & post volume, top movers |
 
-## Test business IDs
+## Test businesses
 
-`gym-001`, `restaurant-001`, `cafe-001`, `retail-001`.
+| ID | Name | Niche | Location |
+|---|---|---|---|
+| `gym-001` | Club Vitality | Gym | Brisbane |
+| `restaurant-001` | August Restaurant | Restaurant | Brisbane |
+| `cafe-001` | Kin & Co | Cafe | Brisbane |
+| `retail-001` | RSPCA Op Shop New Farm | Op-shop / retail | Brisbane |
 
-## Data shape
+## How the demo data works
 
-See `lib/types.ts` for the full TypeScript types — import from `@/lib/types`.
+- `data/seed/businesses.json` and `data/seed/competitors.json` are static.
+- Posts + signals are generated deterministically on first import by `lib/seed-generator.ts` (seeded RNG per competitor id, ~12 weeks of weekly posts, one designated viral spike per competitor).
+- Recent weeks bias toward high-importance signals so the initiatives feed always has something punchy.
 
-## How the fake data works
+## Hosting
 
-- `data/seed/businesses.json` + `data/seed/competitors.json` are static.
-- Posts + signals are deterministically generated at module load from `lib/seed-generator.ts` (seeded RNG per competitor id, ~8 posts each over ~6 weeks).
-- Recent weeks are biased toward high-importance signals so the initiatives feed always has something punchy.
+This is a standard Next.js 15 app. To deploy:
 
-## Swapping in Firebase later
+- **Vercel** — `vercel deploy`, no config needed.
+- **Lovable** — import this repo, hit "Publish".
+- **Anywhere else** — `npm run build && npm run start` gives you a Node server on port 3000.
 
-The store interface (`lib/store.ts`) is the only file that needs to change. API routes only depend on its exported functions.
+Note: the in-memory store (`lib/store.ts`) mutates on `PATCH /api/businesses/:id`. On serverless hosts those mutations don't survive cold starts — the demo flow is designed to work within a single warm session.
