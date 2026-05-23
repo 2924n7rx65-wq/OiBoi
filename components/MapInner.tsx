@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+// (useEffect is used by the Recenter helper below)
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -64,6 +66,12 @@ function Recenter({ center, zoom }: { center: { lat: number; lon: number }; zoom
 }
 
 export default function MapInner({ center, zoom = 14, pins, height = 280 }: Props) {
+  // Stable random key per component instance — guarantees React mounts a fresh
+  // tree (and Leaflet attaches to a brand-new DOM node) whenever this
+  // component is remounted, sidestepping react-leaflet@4's "Map container is
+  // already initialized" error.
+  const [mapKey] = useState(() => `map-${Math.random().toString(36).slice(2)}`);
+
   return (
     <div
       style={{
@@ -73,9 +81,15 @@ export default function MapInner({ center, zoom = 14, pins, height = 280 }: Prop
         overflow: "hidden",
         border: "1px solid var(--rule)",
         background: "var(--cream)",
+        // Trap Leaflet's internal pane z-indexes (markers/tooltips/controls
+        // hit ~400-800) so they can't leak above sibling overlays like modals.
+        isolation: "isolate",
+        position: "relative",
+        zIndex: 0,
       }}
     >
       <MapContainer
+        key={mapKey}
         center={[center.lat, center.lon]}
         zoom={zoom}
         scrollWheelZoom={false}

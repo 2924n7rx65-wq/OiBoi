@@ -811,7 +811,7 @@ function SignalDetail({
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
-        zIndex: 70,
+        zIndex: 1100,
       }}
     >
       <div

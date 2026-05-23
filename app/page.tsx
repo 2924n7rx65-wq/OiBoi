@@ -216,7 +216,7 @@ function HeroIconBackdrop() {
             left: it.left,
             top: it.top,
             transform: `rotate(${it.rot}deg)`,
-            color: it.tone === "soft" ? "#B6CDB9" : "#D7DBC5",
+            color: it.tone === "soft" ? "#7F9F87" : "#9AAA90",
             animation: "breathe 4s ease-in-out infinite alternate",
             animationDelay: `${(i * 2.4 / (items.length - 1)).toFixed(2)}s`,
           }}
@@ -245,6 +245,12 @@ function SideAnnotation({
         style={{
           textAlign: side === "right" ? "right" : "left",
           marginBottom: 12,
+          // Fixed block height so the arrow sits at the same y on all three
+          // annotations regardless of how their body text wraps.
+          minHeight: 64,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
         }}
       >
         <div
@@ -271,56 +277,53 @@ function SideAnnotation({
         </p>
       </div>
 
-      {/* Visual connector line pointing toward the card panel */}
-      {side === "left" ? (
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div
-            style={{
-              flex: 1,
-              height: 1.5,
-              background:
-                "linear-gradient(to right, transparent, var(--green))",
-              opacity: 0.65,
-            }}
-          />
-          <span
-            style={{
-              color: "var(--green)",
-              fontSize: 15,
-              fontWeight: 700,
-              lineHeight: 1,
-              marginLeft: 3,
-            }}
-          >
-            →
-          </span>
-        </div>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <span
-            style={{
-              color: "var(--green)",
-              fontSize: 15,
-              fontWeight: 700,
-              lineHeight: 1,
-              marginRight: 3,
-            }}
-          >
-            ←
-          </span>
-          <div
-            style={{
-              flex: 1,
-              height: 1.5,
-              background:
-                "linear-gradient(to left, transparent, var(--green))",
-              opacity: 0.65,
-            }}
-          />
-        </div>
-      )}
+      {/* Connector line + arrowhead — SVG so the head sits flush with the line */}
+      <ConnectorArrow side={side} />
     </div>
   );
+}
+
+function ConnectorArrow({ side }: { side: "left" | "right" }) {
+  // 16px tall SVG with a 1.5px line + crisp triangle. Single element keeps
+  // the line and head perfectly aligned regardless of font metrics.
+  const arrow = side === "left" ? (
+    <svg
+      width="100%"
+      height="10"
+      viewBox="0 0 100 10"
+      preserveAspectRatio="none"
+      style={{ display: "block", opacity: 0.85 }}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id="connL" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stopColor="#2D5A41" stopOpacity="0" />
+          <stop offset="100%" stopColor="#2D5A41" stopOpacity="1" />
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="5" x2="94" y2="5" stroke="url(#connL)" strokeWidth="1.5" />
+      <polygon points="100,5 92,1 92,9" fill="#2D5A41" />
+    </svg>
+  ) : (
+    <svg
+      width="100%"
+      height="10"
+      viewBox="0 0 100 10"
+      preserveAspectRatio="none"
+      style={{ display: "block", opacity: 0.85 }}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id="connR" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stopColor="#2D5A41" stopOpacity="1" />
+          <stop offset="100%" stopColor="#2D5A41" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points="0,5 8,1 8,9" fill="#2D5A41" />
+      <line x1="6" y1="5" x2="100" y2="5" stroke="url(#connR)" strokeWidth="1.5" />
+    </svg>
+  );
+  return <div style={{ width: "100%" }}>{arrow}</div>;
 }
 
 /* ─── Dashboard Scroll Section ──────────────────────────────────────────────── */
@@ -354,9 +357,18 @@ function DashboardScrollSection() {
     <div ref={wrapperRef} style={{ background: "var(--paper)" }}>
       <div className="dashboard-scroll-grid">
 
-        {/* Left col — stretched to full section height, inner div is sticky */}
+        {/* Left col — annotation lives in normal flow so it travels with the
+            dashboard card as the section scrolls up the page. */}
         <div className="annotation-col">
-          <div style={{ position: "sticky", top: "46vh", padding: "0 8px 0 16px" }}>
+          <div
+            style={{
+              height: "100%",
+              padding: "0 8px 0 16px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}
+          >
             <motion.div style={{ opacity: annotationOpacity }}>
               <SideAnnotation
                 label="Rival Feed"
@@ -390,15 +402,16 @@ function DashboardScrollSection() {
           <LiveDashboard />
         </ContainerScroll>
 
-        {/* Right col — BOTH annotations in ONE sticky container so they can never collide */}
+        {/* Right col — both annotations centered with the card and traveling
+            with it as the section scrolls up. */}
         <div className="annotation-col">
           <div
             style={{
-              position: "sticky",
-              top: "36vh",
+              height: "100%",
               padding: "0 16px 0 8px",
               display: "flex",
               flexDirection: "column",
+              justifyContent: "center",
               gap: 90,
             }}
           >
