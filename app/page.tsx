@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { TopNav } from "@/components/TopNav";
 import {
   IconArrowRight,
@@ -321,32 +322,7 @@ function Footer() {
         }}
       >
         <div>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <span
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 7,
-                background: "var(--paper)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <span
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 4,
-                  background: "var(--green)",
-                  display: "inline-block",
-                }}
-              />
-            </span>
-            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: 18 }}>
-              Leapfrog
-            </span>
-          </span>
+          <Logo variant="dark" size={32} />
           <p style={{ marginTop: 12, fontSize: 13, color: "#C7D8CB", maxWidth: 280 }}>
             Stay one hop ahead of the shop next door. Real-time competitor radar for small local
             businesses.
