@@ -1,16 +1,16 @@
 import type { ReactNode } from "react";
-import { Fraunces, IBM_Plex_Sans } from "next/font/google";
+import { Spectral, Manrope } from "next/font/google";
 import { SpiralScrollbar } from "@/components/SpiralScrollbar";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const heading = Spectral({
   subsets: ["latin"],
   variable: "--font-heading-raw",
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],
   display: "swap",
 });
-const plex = IBM_Plex_Sans({
+const body = Manrope({
   subsets: ["latin"],
   variable: "--font-body-raw",
   weight: ["400", "500", "600", "700"],
@@ -25,7 +25,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${plex.variable}`}>
+    <html lang="en" className={`${heading.variable} ${body.variable}`}>
       <body>
         <SpiralScrollbar />
         {children}
