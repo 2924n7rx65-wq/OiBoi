@@ -30,7 +30,7 @@ html::-webkit-scrollbar,
 body::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
 body {
-  background: var(--cream);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 15px;
@@ -243,4 +243,92 @@ button { font: inherit; cursor: pointer; }
   box-shadow:
     0 1px 0 rgba(255,255,255,0.9) inset,
     0 12px 40px rgba(45,90,65,0.12) !important;
+}
+
+/* ─── Liquid glass panels ───────────────────────────────────────────────────── */
+/* Translucent, blurred panels with a moving specular sheen. The fill tint is set
+   per-panel via the --tint / --tint-strong custom properties so each panel keeps
+   the colour it already had. */
+.liquid-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    linear-gradient(150deg, var(--tint-strong, rgba(255,255,255,0.18)), var(--tint, rgba(255,255,255,0.08)));
+  border: 1px solid var(--tint-border, rgba(255,255,255,0.5));
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.55) inset,
+    0 1px 1px rgba(255,255,255,0.4) inset,
+    0 14px 44px rgba(31,63,45,0.12);
+  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease;
+}
+/* Soft top-left highlight — the "wet glass" curvature */
+.liquid-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 12% 0%, rgba(255,255,255,0.55), rgba(255,255,255,0) 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Travelling specular streak — the "liquid" shimmer */
+.liquid-panel::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -60%;
+  width: 45%;
+  height: 180%;
+  background: linear-gradient(75deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: rotate(9deg);
+  filter: blur(7px);
+  pointer-events: none;
+  z-index: 0;
+  animation: liquidSheen 8s ease-in-out infinite;
+  animation-delay: var(--sheen-delay, 0s);
+}
+.liquid-panel > * { position: relative; z-index: 1; }
+.liquid-panel:hover {
+  transform: translateY(-5px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.6) inset,
+    0 1px 1px rgba(255,255,255,0.45) inset,
+    0 22px 60px rgba(31,63,45,0.18);
+}
+
+@keyframes liquidSheen {
+  0%   { left: -60%; opacity: 0; }
+  12%  { opacity: 0.9; }
+  45%  { left: 130%; opacity: 0; }
+  100% { left: 130%; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-panel::after { animation: none; }
+}
+
+/* ─── Leaping frog (hero wow moment) ───────────────────────────────────────── */
+.leap-frog {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  animation: leapfrogJump 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+}
+@keyframes leapfrogJump {
+  0%, 100%  { transform: translate(0, 0) rotate(0) scale(1, 1); opacity: 0; }
+  3%        { transform: translate(0, 0) rotate(0) scale(1, 1); opacity: 1; }
+  6%        { transform: translate(2px, 2px) rotate(0) scale(1.18, 0.8); opacity: 1; }   /* crouch */
+  9%        { transform: translate(40px, -52px) rotate(10deg) scale(0.9, 1.18); opacity: 1; } /* launch */
+  13%       { transform: translate(150px, -82px) rotate(0deg) scale(1, 1); opacity: 1; }      /* apex */
+  17%       { transform: translate(258px, -50px) rotate(-10deg) scale(0.92, 1.12); opacity: 1; }
+  20%       { transform: translate(300px, 0) rotate(0) scale(1.22, 0.78); opacity: 1; }        /* land squash */
+  23%       { transform: translate(300px, 0) rotate(0) scale(1, 1); opacity: 1; }
+  29%       { transform: translate(300px, 0) rotate(0) scale(1, 1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .leap-frog { animation: none; opacity: 0; }
 }

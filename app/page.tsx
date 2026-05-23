@@ -39,7 +39,7 @@ export default function HeroHome() {
       <div
         style={{
           position: "relative",
-          background: "var(--paper)",
+          background: "var(--cream)",
           minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
@@ -81,7 +81,7 @@ export default function HeroHome() {
               position: "absolute",
               inset: 0,
               background:
-                "radial-gradient(ellipse 72% 60% at 50% 42%, var(--paper) 35%, transparent 100%)",
+                "radial-gradient(ellipse 72% 60% at 50% 42%, var(--cream) 35%, transparent 100%)",
             }}
           />
           {/* Ambient green glow — drifts slowly */}
@@ -127,6 +127,7 @@ export default function HeroHome() {
               zIndex: 1,
             }}
           >
+            <Frog />
             <h1 style={{ marginTop: 0 }}>
               Own <span className="italic-accent">your market.</span>
             </h1>
@@ -162,6 +163,56 @@ export default function HeroHome() {
       <HowItWorks />
       <Footer />
     </>
+  );
+}
+
+/* ─── Leaping frog (hero wow moment) ───────────────────────────────────────── */
+
+function Frog() {
+  return (
+    <span
+      className="leap-frog"
+      aria-hidden
+      style={{ left: "calc(50% - 150px)", top: 4 }}
+    >
+      <svg
+        width="42"
+        height="38"
+        viewBox="0 0 42 38"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ display: "block", filter: "drop-shadow(0 4px 6px rgba(31,63,45,0.25))" }}
+      >
+        {/* feet */}
+        <ellipse cx="11" cy="33" rx="6.5" ry="3.6" fill="var(--green-deep)" />
+        <ellipse cx="31" cy="33" rx="6.5" ry="3.6" fill="var(--green-deep)" />
+        {/* body */}
+        <path
+          d="M6 22 Q6 10 21 10 Q36 10 36 22 Q36 32 21 32 Q6 32 6 22 Z"
+          fill="var(--green)"
+        />
+        {/* belly */}
+        <ellipse cx="21" cy="25" rx="9" ry="5" fill="#3A7A55" opacity="0.6" />
+        {/* eye bumps */}
+        <circle cx="13" cy="9" r="7" fill="var(--green)" />
+        <circle cx="29" cy="9" r="7" fill="var(--green)" />
+        {/* eye whites */}
+        <circle cx="13" cy="8" r="4" fill="var(--cream)" />
+        <circle cx="29" cy="8" r="4" fill="var(--cream)" />
+        {/* pupils */}
+        <circle cx="14" cy="8" r="2" fill="var(--ink)" />
+        <circle cx="30" cy="8" r="2" fill="var(--ink)" />
+        {/* smile */}
+        <path
+          d="M15 24 Q21 28 27 24"
+          stroke="var(--ink)"
+          strokeWidth="1.5"
+          fill="none"
+          strokeLinecap="round"
+          opacity="0.5"
+        />
+      </svg>
+    </span>
   );
 }
 
@@ -327,15 +378,15 @@ function DashboardScrollSection() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [progressMV]);
 
-  // Annotations drift in continuously as you scroll through the section.
-  // No spring — they track 1:1 with scroll so they feel "part of" the animation.
-  // x finishes at 60% of scroll (after card is flat) so they fully land in view.
-  const annotationOpacity = useTransform(progressMV, [0.15, 0.38], [0, 1]);
-  const leftX  = useTransform(progressMV, [0.12, 0.60], [-42, 0]);
-  const rightX = useTransform(progressMV, [0.12, 0.60], [42, 0]);
+  // Annotations slide in as you scroll, then LOCK in place. useTransform clamps to
+  // the output range by default, so once progress passes the upper bound the values
+  // freeze at 0 (and opacity at 1) and stop moving for the rest of the scroll.
+  const annotationOpacity = useTransform(progressMV, [0.15, 0.34], [0, 1], { clamp: true });
+  const leftX  = useTransform(progressMV, [0.12, 0.40], [-42, 0], { clamp: true });
+  const rightX = useTransform(progressMV, [0.12, 0.40], [42, 0], { clamp: true });
 
   return (
-    <div ref={wrapperRef} style={{ background: "var(--cream)" }}>
+    <div ref={wrapperRef} style={{ background: "var(--paper)" }}>
       <div className="dashboard-scroll-grid">
 
         {/* Left col — stretched to full section height, inner div is sticky */}
@@ -374,10 +425,18 @@ function DashboardScrollSection() {
           <LiveDashboard />
         </ContainerScroll>
 
-        {/* Right col — two stickies at different vertical positions */}
+        {/* Right col — BOTH annotations in ONE sticky container so they can never collide */}
         <div className="annotation-col">
-          {/* Analytics — aligns with the chart (upper-right panel) */}
-          <div style={{ position: "sticky", top: "38vh", padding: "0 16px 0 8px" }}>
+          <div
+            style={{
+              position: "sticky",
+              top: "36vh",
+              padding: "0 16px 0 8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 90,
+            }}
+          >
             <motion.div style={{ opacity: annotationOpacity, x: rightX }}>
               <SideAnnotation
                 label="Analytics"
@@ -385,9 +444,6 @@ function DashboardScrollSection() {
                 side="right"
               />
             </motion.div>
-          </div>
-          {/* Weekly Edge — aligns with the recommendation card (lower-right) */}
-          <div style={{ position: "sticky", top: "60vh", padding: "0 16px 0 8px" }}>
             <motion.div style={{ opacity: annotationOpacity, x: rightX }}>
               <SideAnnotation
                 label="Weekly Edge"
@@ -836,13 +892,48 @@ function WhyLeapfrog() {
   return (
     <section
       style={{
+        position: "relative",
+        overflow: "hidden",
         borderTop: "1px solid var(--rule)",
         borderBottom: "1px solid var(--rule)",
         background: "var(--paper)",
         padding: "72px 0",
       }}
     >
-      <div className="container">
+      {/* Soft colour blobs so the liquid-glass panels have something to refract */}
+      <div
+        aria-hidden
+        style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            width: 520,
+            height: 420,
+            left: "-6%",
+            bottom: "-12%",
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(45,90,65,0.20), transparent 68%)",
+            filter: "blur(20px)",
+            animation: "ambientDrift 16s ease-in-out infinite",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            width: 460,
+            height: 380,
+            right: "-4%",
+            top: "-10%",
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(217,93,57,0.16), transparent 68%)",
+            filter: "blur(20px)",
+            animation: "ambientDrift 19s ease-in-out infinite reverse",
+          }}
+        />
+      </div>
+
+      <div className="container" style={{ position: "relative", zIndex: 1 }}>
         <div
           style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 52px" }}
         >
@@ -859,11 +950,13 @@ function WhyLeapfrog() {
         >
           {/* Before */}
           <div
+            className="liquid-panel"
             style={{
               padding: 32,
-              borderRadius: 18,
-              background: "rgba(26, 31, 27, 0.04)",
-              border: "1px solid rgba(0,0,0,0.08)",
+              ["--tint" as string]: "rgba(26,31,27,0.06)",
+              ["--tint-strong" as string]: "rgba(26,31,27,0.13)",
+              ["--tint-border" as string]: "rgba(26,31,27,0.12)",
+              ["--sheen-delay" as string]: "0s",
             }}
           >
             <p className="eyebrow" style={{ marginBottom: 16 }}>
@@ -897,11 +990,13 @@ function WhyLeapfrog() {
 
           {/* After */}
           <div
+            className="liquid-panel"
             style={{
               padding: 32,
-              borderRadius: 18,
-              background: "var(--green-soft)",
-              border: "1px solid rgba(45,90,65,0.15)",
+              ["--tint" as string]: "rgba(45,90,65,0.10)",
+              ["--tint-strong" as string]: "rgba(45,90,65,0.20)",
+              ["--tint-border" as string]: "rgba(45,90,65,0.28)",
+              ["--sheen-delay" as string]: "2.6s",
             }}
           >
             <p
@@ -937,11 +1032,13 @@ function WhyLeapfrog() {
 
           {/* Third: different vertical */}
           <div
+            className="liquid-panel"
             style={{
               padding: 32,
-              borderRadius: 18,
-              background: "var(--cream)",
-              border: "1px solid var(--rule)",
+              ["--tint" as string]: "rgba(244,241,234,0.35)",
+              ["--tint-strong" as string]: "rgba(244,241,234,0.6)",
+              ["--tint-border" as string]: "rgba(229,226,217,0.8)",
+              ["--sheen-delay" as string]: "5.2s",
             }}
           >
             <p
