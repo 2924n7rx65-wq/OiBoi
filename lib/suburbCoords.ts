@@ -24,8 +24,10 @@ export function coordsForSuburb(suburb: string | null | undefined): LatLon {
 }
 
 /**
- * Lightly jitter a coordinate so multiple pins in the same suburb don't stack.
- * Deterministic based on a seed string (e.g., competitor id).
+ * Pseudo-locations for the map: pins are positioned NEAR their real suburb
+ * but with a generous deterministic offset so multiple competitors in the
+ * same suburb don't stack into a single dot. ±~750m radius reads cleanly
+ * at the zoom levels we use without ever putting a pin in the wrong suburb.
  */
 export function jitterCoord(c: LatLon, seed: string): LatLon {
   let h = 2166136261;
@@ -33,11 +35,13 @@ export function jitterCoord(c: LatLon, seed: string): LatLon {
     h ^= seed.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
-  const rng1 = ((h >>> 0) % 1000) / 1000;
-  const rng2 = ((h >>> 8) % 1000) / 1000;
-  // ~250m radius of jitter
+  const rng1 = ((h >>> 0) % 10000) / 10000;
+  const rng2 = ((h >>> 13) % 10000) / 10000;
+  // Polar-coordinate spread keeps the cluster looking organic, not gridded.
+  const angle = rng1 * Math.PI * 2;
+  const radius = 0.003 + rng2 * 0.007; // ~330m to ~1.1km
   return {
-    lat: c.lat + (rng1 - 0.5) * 0.003,
-    lon: c.lon + (rng2 - 0.5) * 0.003,
+    lat: c.lat + Math.sin(angle) * radius,
+    lon: c.lon + Math.cos(angle) * radius,
   };
 }

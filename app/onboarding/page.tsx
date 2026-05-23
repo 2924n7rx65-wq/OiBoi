@@ -333,7 +333,7 @@ function Step2({
         </div>
         <CompetitorMap
           center={yourCoords}
-          zoom={14}
+          zoom={13}
           pins={[youPin, ...trackedPins, ...discoverablePins]}
           height={420}
         />
