@@ -122,16 +122,25 @@ export default function HeroHome() {
             style={{
               position: "relative",
               textAlign: "center",
-              maxWidth: 760,
+              maxWidth: 880,
               margin: "0 auto",
               zIndex: 1,
             }}
           >
-            <Frog />
-            <h1 style={{ marginTop: 0 }}>
-              Own <span className="italic-accent">your market.</span>
+            <h1 style={{ marginTop: 0, fontSize: "clamp(48px, 8vw, 88px)" }}>
+              Own <span className="italic-accent">Your Market.</span>
             </h1>
-            <p style={{ marginTop: 18, fontSize: 17, color: "var(--ink-soft)" }}>
+            <p
+              style={{
+                marginTop: 24,
+                fontSize: 21,
+                lineHeight: 1.55,
+                color: "var(--ink-soft)",
+                maxWidth: 640,
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
               Leapfrog watches the shops on your block. Promos, pricing moves,
               viral posts. Surfaced the morning they go live, with plain-English
               suggestions on how to stay one step ahead.
@@ -140,16 +149,24 @@ export default function HeroHome() {
             <div
               style={{
                 display: "flex",
-                gap: 12,
+                gap: 16,
                 justifyContent: "center",
-                marginTop: 28,
+                marginTop: 40,
                 flexWrap: "wrap",
               }}
             >
-              <Link href="/home" className="btn btn-primary">
-                Start free trial <IconArrowRight width={14} height={14} />
+              <Link
+                href="/home"
+                className="btn btn-primary"
+                style={{ fontSize: 17, padding: "16px 30px", borderRadius: 12 }}
+              >
+                Start free trial <IconArrowRight width={16} height={16} />
               </Link>
-              <Link href="/onboarding" className="btn btn-secondary">
+              <Link
+                href="/onboarding"
+                className="btn btn-secondary"
+                style={{ fontSize: 17, padding: "16px 30px", borderRadius: 12 }}
+              >
                 Set up my business
               </Link>
             </div>
@@ -163,56 +180,6 @@ export default function HeroHome() {
       <HowItWorks />
       <Footer />
     </>
-  );
-}
-
-/* ─── Leaping frog (hero wow moment) ───────────────────────────────────────── */
-
-function Frog() {
-  return (
-    <span
-      className="leap-frog"
-      aria-hidden
-      style={{ left: "calc(50% - 150px)", top: 4 }}
-    >
-      <svg
-        width="42"
-        height="38"
-        viewBox="0 0 42 38"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ display: "block", filter: "drop-shadow(0 4px 6px rgba(31,63,45,0.25))" }}
-      >
-        {/* feet */}
-        <ellipse cx="11" cy="33" rx="6.5" ry="3.6" fill="var(--green-deep)" />
-        <ellipse cx="31" cy="33" rx="6.5" ry="3.6" fill="var(--green-deep)" />
-        {/* body */}
-        <path
-          d="M6 22 Q6 10 21 10 Q36 10 36 22 Q36 32 21 32 Q6 32 6 22 Z"
-          fill="var(--green)"
-        />
-        {/* belly */}
-        <ellipse cx="21" cy="25" rx="9" ry="5" fill="#3A7A55" opacity="0.6" />
-        {/* eye bumps */}
-        <circle cx="13" cy="9" r="7" fill="var(--green)" />
-        <circle cx="29" cy="9" r="7" fill="var(--green)" />
-        {/* eye whites */}
-        <circle cx="13" cy="8" r="4" fill="var(--cream)" />
-        <circle cx="29" cy="8" r="4" fill="var(--cream)" />
-        {/* pupils */}
-        <circle cx="14" cy="8" r="2" fill="var(--ink)" />
-        <circle cx="30" cy="8" r="2" fill="var(--ink)" />
-        {/* smile */}
-        <path
-          d="M15 24 Q21 28 27 24"
-          stroke="var(--ink)"
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.5"
-        />
-      </svg>
-    </span>
   );
 }
 
@@ -378,12 +345,10 @@ function DashboardScrollSection() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [progressMV]);
 
-  // Annotations slide in as you scroll, then LOCK in place. useTransform clamps to
-  // the output range by default, so once progress passes the upper bound the values
-  // freeze at 0 (and opacity at 1) and stop moving for the rest of the scroll.
-  const annotationOpacity = useTransform(progressMV, [0.15, 0.34], [0, 1], { clamp: true });
-  const leftX  = useTransform(progressMV, [0.12, 0.40], [-42, 0], { clamp: true });
-  const rightX = useTransform(progressMV, [0.12, 0.40], [42, 0], { clamp: true });
+  // Annotations never translate — they sit pinned (sticky) exactly where their arrows
+  // point at the card, and simply SNAP on (a fast fade over a tiny scroll window) once
+  // the card is locked flat. The clamp keeps opacity at 1 afterwards, so they never move.
+  const annotationOpacity = useTransform(progressMV, [0.36, 0.40], [0, 1], { clamp: true });
 
   return (
     <div ref={wrapperRef} style={{ background: "var(--paper)" }}>
@@ -392,7 +357,7 @@ function DashboardScrollSection() {
         {/* Left col — stretched to full section height, inner div is sticky */}
         <div className="annotation-col">
           <div style={{ position: "sticky", top: "46vh", padding: "0 8px 0 16px" }}>
-            <motion.div style={{ opacity: annotationOpacity, x: leftX }}>
+            <motion.div style={{ opacity: annotationOpacity }}>
               <SideAnnotation
                 label="Rival Feed"
                 body="Every competitor post, classified live."
@@ -437,14 +402,14 @@ function DashboardScrollSection() {
               gap: 90,
             }}
           >
-            <motion.div style={{ opacity: annotationOpacity, x: rightX }}>
+            <motion.div style={{ opacity: annotationOpacity }}>
               <SideAnnotation
                 label="Analytics"
                 body="Spot when rivals go quiet. That is your window."
                 side="right"
               />
             </motion.div>
-            <motion.div style={{ opacity: annotationOpacity, x: rightX }}>
+            <motion.div style={{ opacity: annotationOpacity }}>
               <SideAnnotation
                 label="Weekly Edge"
                 body="One clear action for your block."

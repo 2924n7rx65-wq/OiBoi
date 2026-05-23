@@ -308,27 +308,3 @@ button { font: inherit; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .liquid-panel::after { animation: none; }
 }
-
-/* ─── Leaping frog (hero wow moment) ───────────────────────────────────────── */
-.leap-frog {
-  position: absolute;
-  z-index: 2;
-  pointer-events: none;
-  transform-origin: 50% 100%;
-  animation: leapfrogJump 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  will-change: transform, opacity;
-}
-@keyframes leapfrogJump {
-  0%, 100%  { transform: translate(0, 0) rotate(0) scale(1, 1); opacity: 0; }
-  3%        { transform: translate(0, 0) rotate(0) scale(1, 1); opacity: 1; }
-  6%        { transform: translate(2px, 2px) rotate(0) scale(1.18, 0.8); opacity: 1; }   /* crouch */
-  9%        { transform: translate(40px, -52px) rotate(10deg) scale(0.9, 1.18); opacity: 1; } /* launch */
-  13%       { transform: translate(150px, -82px) rotate(0deg) scale(1, 1); opacity: 1; }      /* apex */
-  17%       { transform: translate(258px, -50px) rotate(-10deg) scale(0.92, 1.12); opacity: 1; }
-  20%       { transform: translate(300px, 0) rotate(0) scale(1.22, 0.78); opacity: 1; }        /* land squash */
-  23%       { transform: translate(300px, 0) rotate(0) scale(1, 1); opacity: 1; }
-  29%       { transform: translate(300px, 0) rotate(0) scale(1, 1); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .leap-frog { animation: none; opacity: 0; }
-}
