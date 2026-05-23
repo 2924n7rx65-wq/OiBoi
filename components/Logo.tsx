@@ -1,14 +1,21 @@
+import Image from "next/image";
 import type { CSSProperties } from "react";
 
-export function Logo({
-  size = 28,
-  withWordmark = true,
-  style,
-}: {
+interface LogoProps {
   size?: number;
   withWordmark?: boolean;
+  /** "dark" wraps the mark in a cream circle so it stays readable on green surfaces. */
+  variant?: "light" | "dark";
   style?: CSSProperties;
-}) {
+}
+
+export function Logo({
+  size = 30,
+  withWordmark = true,
+  variant = "light",
+  style,
+}: LogoProps) {
+  const onDark = variant === "dark";
   return (
     <span
       style={{
@@ -17,25 +24,38 @@ export function Logo({
         gap: 10,
         fontFamily: "var(--font-heading)",
         fontWeight: 500,
-        fontSize: 19,
-        letterSpacing: "-0.01em",
-        color: "var(--ink)",
+        fontSize: 20,
+        letterSpacing: "-0.015em",
+        color: onDark ? "var(--paper)" : "var(--ink)",
         ...style,
       }}
     >
-      <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-        <rect width="32" height="32" rx="9" fill="#2D5A41" />
-        {/* Stylized frog leap arc — two dots + an arc */}
-        <path
-          d="M7 22 C 10 12, 22 12, 25 22"
-          fill="none"
-          stroke="#F4F1EA"
-          strokeWidth="1.8"
-          strokeLinecap="round"
+      <span
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 10,
+          background: onDark ? "var(--paper)" : "transparent",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: onDark ? 3 : 0,
+        }}
+      >
+        <Image
+          src="/leapfrog-logo.png"
+          alt="Leapfrog"
+          width={size}
+          height={size}
+          priority
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            display: "block",
+          }}
         />
-        <circle cx="7" cy="22" r="2.3" fill="#F4F1EA" />
-        <circle cx="25" cy="22" r="2.3" fill="#D95D39" />
-      </svg>
+      </span>
       {withWordmark && <span>Leapfrog</span>}
     </span>
   );

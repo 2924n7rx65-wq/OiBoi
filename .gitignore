@@ -6,3 +6,11 @@ out
 .DS_Store
 *.log
 next-env.d.ts
+
+# Office lock files (created while a .pptx/.docx is open)
+~$*
+
+# Source design assets — keep the in-app copy under /public
+LeapFrogLogo.png
+LepFrogFinalLogo.png
+symmetrical_frog_foot_logo_v1*.png

@@ -22,9 +22,10 @@ import {
   IconArrowRight,
   IconBolt,
   IconClose,
-  IconRadar,
   IconSparkle,
 } from "@/components/Icons";
+import { CompetitorMap, type MapPin } from "@/components/CompetitorMap";
+import { coordsForSuburb, jitterCoord } from "@/lib/suburbCoords";
 
 type Pill = "promo" | "new-product" | "viral-post" | "pricing";
 
@@ -247,9 +248,9 @@ export default function AnalyticsPage() {
           </section>
 
           <aside style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <CompetitorRadar
-              competitors={competitors.filter((c) => c.tier === "local")}
-              topMovers={data.topMovers}
+            <MarketMap
+              business={business}
+              localCompetitors={competitors.filter((c) => c.tier === "local")}
               initiatives={data.initiatives}
             />
             <WeeklySummary
@@ -476,177 +477,93 @@ function FeedCard({
   );
 }
 
-function CompetitorRadar({
+function MarketMap({
+  business,
+  localCompetitors,
   initiatives,
 }: {
-  competitors: Competitor[];
-  topMovers: AnalyticsResponse["topMovers"];
+  business: Business;
+  localCompetitors: Competitor[];
   initiatives: (Signal & { competitorName: string })[];
 }) {
-  // Bubble chart: 4 columns, one per signal-pill type. Each bubble is a
-  // single initiative — Y = engagement vs baseline, size = importance.
-  // Reads at a glance as "what kind of moves are landing this week".
-  const [hovered, setHovered] = useState<string | null>(null);
+  const yourCoords = coordsForSuburb(business.location?.suburb ?? null);
 
-  const COLS: Pill[] = ["promo", "new-product", "viral-post", "pricing"];
-  const W = 280;
-  const H = 220;
-  const PAD_T = 18;
-  const PAD_B = 36;
-  const PAD_L = 30;
-  const PAD_R = 8;
-  const chartH = H - PAD_T - PAD_B;
-  const colW = (W - PAD_L - PAD_R) / COLS.length;
+  const lastInitiative = new Map<string, Signal & { competitorName: string }>();
+  for (const s of initiatives) {
+    if (!lastInitiative.has(s.competitorId)) lastInitiative.set(s.competitorId, s);
+  }
 
-  const positive = initiatives.filter((s) => s.engagementDelta >= 0);
-  const maxDelta = Math.max(0.6, ...positive.map((s) => s.engagementDelta));
-  const tickValues = [0, 0.5, 1].map((t) => Math.round(t * maxDelta * 100));
-
-  const bubbles = positive.map((s) => {
-    const pill = pillFor(s.signalType, s.engagementDelta);
-    const colIdx = COLS.indexOf(pill);
-    // deterministic horizontal jitter inside the column
-    const hash = Array.from(s.id).reduce((a, ch) => a + ch.charCodeAt(0), 0);
-    const jitter = ((hash % 1000) / 1000) * (colW - 18) + 9;
-    const cx = PAD_L + colIdx * colW + jitter;
-    const cy = PAD_T + (1 - s.engagementDelta / maxDelta) * chartH;
-    const r = 5 + s.importance * 8;
-    return { s, pill, cx, cy, r };
-  });
+  const pins: MapPin[] = [
+    {
+      id: "you",
+      lat: yourCoords.lat,
+      lon: yourCoords.lon,
+      label: business.name,
+      sublabel: "You are here",
+      tone: "you",
+    },
+    ...localCompetitors.map((c) => {
+      const base = coordsForSuburb(c.suburb);
+      const j = jitterCoord(base, c.id);
+      const init = lastInitiative.get(c.id);
+      const pill = init ? pillFor(init.signalType, init.engagementDelta) : "promo";
+      return {
+        id: c.id,
+        lat: j.lat,
+        lon: j.lon,
+        label: c.name,
+        sublabel: `${c.suburb} · ${init ? PILL_STYLE[pill].label : "tracking"}`,
+        tone: init && init.engagementDelta > 0.75 ? "hot" : "tracked",
+        color: PILL_STYLE[pill].fg,
+      } satisfies MapPin;
+    }),
+  ];
 
   return (
-    <div className="card" style={{ padding: 18 }}>
-      <div style={{ marginBottom: 6 }}>
-        <strong style={{ fontSize: 14 }}>What's working in your market</strong>
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ marginBottom: 10 }}>
+        <strong style={{ fontSize: 14 }}>Where your block sits</strong>
         <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
-          Each bubble is a competitor move · size = importance · height = engagement
+          Your business in green · competitors coloured by latest move
         </div>
       </div>
-
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="What's working bubble chart">
-        {/* Column backgrounds */}
-        {COLS.map((p, i) => (
-          <rect
-            key={p}
-            x={PAD_L + i * colW}
-            y={PAD_T - 6}
-            width={colW}
-            height={chartH + 6}
-            fill={i % 2 === 0 ? "var(--cream)" : "transparent"}
-            opacity={0.6}
-          />
-        ))}
-
-        {/* Y axis ticks */}
-        {[0, 0.5, 1].map((t, i) => {
-          const y = PAD_T + (1 - t) * chartH;
-          return (
-            <g key={t}>
-              <line x1={PAD_L} x2={W - PAD_R} y1={y} y2={y} stroke="var(--rule)" strokeWidth={0.5} />
-              <text x={PAD_L - 4} y={y + 3} fontSize={9} fill="var(--ink-soft)" textAnchor="end">
-                +{tickValues[i]}%
-              </text>
-            </g>
-          );
-        })}
-
-        {/* Bubbles — sorted so smaller draw on top */}
-        {[...bubbles]
-          .sort((a, b) => b.r - a.r)
-          .map((b) => {
-            const isHot = b.s.engagementDelta > 1;
-            const color = PILL_STYLE[b.pill].fg;
-            return (
-              <g
-                key={b.s.id}
-                onMouseEnter={() => setHovered(b.s.id)}
-                onMouseLeave={() => setHovered(null)}
-                style={{ cursor: "pointer" }}
-              >
-                {isHot && <circle cx={b.cx} cy={b.cy} r={b.r + 6} fill={color} opacity={0.1} />}
-                <circle
-                  cx={b.cx}
-                  cy={b.cy}
-                  r={b.r}
-                  fill={color}
-                  fillOpacity={hovered === b.s.id ? 1 : 0.7}
-                  stroke={color}
-                  strokeWidth={hovered === b.s.id ? 2 : 0}
-                />
-              </g>
-            );
-          })}
-
-        {/* X axis column labels */}
-        {COLS.map((p, i) => {
-          const style = PILL_STYLE[p];
-          return (
-            <g key={`label-${p}`}>
-              <rect
-                x={PAD_L + i * colW + colW / 2 - 26}
-                y={H - PAD_B + 8}
-                width={52}
-                height={18}
-                rx={9}
-                fill={style.bg}
-              />
-              <text
-                x={PAD_L + i * colW + colW / 2}
-                y={H - PAD_B + 20}
-                fontSize={9.5}
-                fontWeight={600}
-                fill={style.fg}
-                textAnchor="middle"
-              >
-                {style.label}
-              </text>
-            </g>
-          );
-        })}
-
-        {/* Hover tooltip */}
-        {hovered &&
-          (() => {
-            const b = bubbles.find((x) => x.s.id === hovered);
-            if (!b) return null;
-            const label = `${b.s.competitorName} · +${Math.round(b.s.engagementDelta * 100)}%`;
-            const w = label.length * 5.4 + 14;
-            const tx = Math.min(W - w - 4, Math.max(4, b.cx - w / 2));
-            const ty = Math.max(2, b.cy - b.r - 22);
-            return (
-              <g pointerEvents="none">
-                <rect x={tx} y={ty} width={w} height={18} rx={4} fill="var(--ink)" />
-                <text x={tx + 7} y={ty + 12} fontSize={9.5} fill="var(--paper)">
-                  {label}
-                </text>
-              </g>
-            );
-          })()}
-      </svg>
-
-      {/* Per-column summary */}
+      <CompetitorMap center={yourCoords} zoom={14} pins={pins} height={260} />
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 6,
-          marginTop: 6,
-          fontSize: 10,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          marginTop: 10,
+          fontSize: 11,
           color: "var(--ink-soft)",
         }}
       >
-        {COLS.map((p) => {
-          const count = bubbles.filter((b) => b.pill === p).length;
-          return (
-            <span key={p} style={{ textAlign: "center" }}>
-              {count} {count === 1 ? "move" : "moves"}
-            </span>
-          );
-        })}
+        <LegendDot color="#2D5A41" label="You" />
+        <LegendDot color="#D95D39" label="Tracking" />
+        <LegendDot color="#A2196F" label="Viral this week" />
       </div>
     </div>
   );
 }
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+      <span
+        style={{
+          width: 9,
+          height: 9,
+          borderRadius: 999,
+          background: color,
+          border: "2px solid var(--paper)",
+          boxShadow: "0 0 0 1px var(--rule)",
+        }}
+      />
+      {label}
+    </span>
+  );
+}
+
 
 function WeeklySummary({
   totalSignals,

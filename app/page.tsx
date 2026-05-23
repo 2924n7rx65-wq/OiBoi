@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, useTransform, useSpring, useMotionValue } from "framer-motion";
+import { motion, useTransform, useMotionValue } from "framer-motion";
 import {
   AreaChart,
   Area,
@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
+import { Logo } from "@/components/Logo";
 import { TopNav } from "@/components/TopNav";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import {
@@ -326,29 +327,28 @@ function DashboardScrollSection() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [progressMV]);
 
-  // Annotations snap in during the flatten phase (20–48%)
-  const annotationOpacity = useTransform(progressMV, [0.20, 0.48], [0, 1]);
-  const rawLeftX  = useTransform(progressMV, [0.20, 0.48], [-34, 0]);
-  const rawRightX = useTransform(progressMV, [0.20, 0.48], [34, 0]);
-  const leftX  = useSpring(rawLeftX,  { stiffness: 230, damping: 22 });
-  const rightX = useSpring(rawRightX, { stiffness: 230, damping: 22 });
+  // Annotations drift in continuously as you scroll through the section.
+  // No spring — they track 1:1 with scroll so they feel "part of" the animation.
+  // x finishes at 60% of scroll (after card is flat) so they fully land in view.
+  const annotationOpacity = useTransform(progressMV, [0.15, 0.38], [0, 1]);
+  const leftX  = useTransform(progressMV, [0.12, 0.60], [-42, 0]);
+  const rightX = useTransform(progressMV, [0.12, 0.60], [42, 0]);
 
   return (
     <div ref={wrapperRef} style={{ background: "var(--cream)" }}>
       <div className="dashboard-scroll-grid">
 
-        {/* Left — points at the Rival Feed panel (left 40% of dashboard) */}
-        <div
-          className="annotation-col"
-          style={{ position: "sticky", top: "45vh", padding: "0 8px 0 16px" }}
-        >
-          <motion.div style={{ opacity: annotationOpacity, x: leftX }}>
-            <SideAnnotation
-              label="Rival Feed"
-              body="Every competitor post, classified live."
-              side="left"
-            />
-          </motion.div>
+        {/* Left col — stretched to full section height, inner div is sticky */}
+        <div className="annotation-col">
+          <div style={{ position: "sticky", top: "46vh", padding: "0 8px 0 16px" }}>
+            <motion.div style={{ opacity: annotationOpacity, x: leftX }}>
+              <SideAnnotation
+                label="Rival Feed"
+                body="Every competitor post, classified live."
+                side="left"
+              />
+            </motion.div>
+          </div>
         </div>
 
         {/* Center: the scroll + card */}
@@ -374,13 +374,10 @@ function DashboardScrollSection() {
           <LiveDashboard />
         </ContainerScroll>
 
-        {/* Right — two annotations at different heights to align with panels */}
-        <div
-          className="annotation-col"
-          style={{ padding: "0 16px 0 8px" }}
-        >
-          {/* "Analytics" aligns with the chart (upper-right of dashboard) */}
-          <div style={{ position: "sticky", top: "38vh", marginBottom: 0 }}>
+        {/* Right col — two stickies at different vertical positions */}
+        <div className="annotation-col">
+          {/* Analytics — aligns with the chart (upper-right panel) */}
+          <div style={{ position: "sticky", top: "38vh", padding: "0 16px 0 8px" }}>
             <motion.div style={{ opacity: annotationOpacity, x: rightX }}>
               <SideAnnotation
                 label="Analytics"
@@ -389,8 +386,8 @@ function DashboardScrollSection() {
               />
             </motion.div>
           </div>
-          {/* "Weekly Edge" aligns with the recommendation card (lower-right) */}
-          <div style={{ position: "sticky", top: "60vh", marginTop: 0 }}>
+          {/* Weekly Edge — aligns with the recommendation card (lower-right) */}
+          <div style={{ position: "sticky", top: "60vh", padding: "0 16px 0 8px" }}>
             <motion.div style={{ opacity: annotationOpacity, x: rightX }}>
               <SideAnnotation
                 label="Weekly Edge"
@@ -1212,40 +1209,7 @@ function Footer() {
         }}
       >
         <div>
-          <span
-            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-          >
-            <span
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 7,
-                background: "var(--paper)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <span
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 4,
-                  background: "var(--green)",
-                  display: "inline-block",
-                }}
-              />
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontWeight: 500,
-                fontSize: 18,
-              }}
-            >
-              Leapfrog
-            </span>
-          </span>
+          <Logo variant="dark" size={32} />
           <p
             style={{
               marginTop: 12,

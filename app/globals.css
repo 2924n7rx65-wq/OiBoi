@@ -216,7 +216,7 @@ button { font: inherit; cursor: pointer; }
 .dashboard-scroll-grid {
   display: grid;
   grid-template-columns: 160px 1fr 160px;
-  align-items: start;
+  align-items: stretch; /* stretch so side cols fill height, enabling sticky inside them */
   max-width: 1440px;
   margin: 0 auto;
 }
